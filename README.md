@@ -19,6 +19,7 @@ This is the **code-sits** branch of the custom SIT library. Other SIT families l
 | `scripts/Export-CustomSITs.ps1` | Read-only export of a tenant's custom rule packages. |
 | `scripts/New-CodeDlpPolicies.ps1` | Creates email and endpoint DLP policies that use the SITs (preview by default, simulation mode). |
 | `Deploy.cmd`, `scripts/Start-Deployer.ps1` | The deployer app: sign in, choose settings, preview, deploy. Saves per-customer settings to `profiles\` (git-ignored). |
+| `scripts/Send-DlpTestEmails.ps1` | Sends the manual test files by email (attachment, body or both) through Microsoft Graph and records what was sent. The app's *Test email* tab uses it. |
 | `scripts/Build-Release.ps1` | Builds the customer download: a zip with only the runtime files, optionally code-signed, with checksums. |
 | `scripts/Invoke-CodeSitDeployment.ps1` | Runs every tenant step in order with one sign-in (SIT backup, SIT import, app group, policies). Used by the app; also works on its own. |
 | `scripts/New-EndpointDlpAppGroup.ps1` | Creates or extends an Endpoint DLP restricted app group (default *AI desktop apps* with `claude.exe`), keeping all existing groups, with a backup and restore script. |

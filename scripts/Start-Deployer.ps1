@@ -110,6 +110,28 @@ Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File 
       <Setter Property="TextWrapping" Value="Wrap"/>
       <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
+    <Style TargetType="TabControl">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0,10,0,0"/>
+    </Style>
+    <Style TargetType="TabItem">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabItem">
+            <Border x:Name="tb" Padding="18,8" Margin="0,0,4,0" Background="Transparent" BorderThickness="0,0,0,3" BorderBrush="Transparent" Cursor="Hand" CornerRadius="4,4,0,0">
+              <ContentPresenter ContentSource="Header" TextElement.FontFamily="Inter SemiBold, Inter, Arial" TextElement.FontWeight="SemiBold" TextElement.FontSize="14"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="tb" Property="BorderBrush" Value="{StaticResource Teal}"/>
+                <Setter TargetName="tb" Property="Background" Value="White"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style x:Key="Card" TargetType="Border">
       <Setter Property="Background" Value="White"/>
       <Setter Property="CornerRadius" Value="6"/>
@@ -177,7 +199,9 @@ Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File 
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
 
-      <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+      <TabControl x:Name="Tabs" Grid.Column="0">
+      <TabItem Header="Deploy">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
 
           <!-- 1 sign in -->
@@ -276,6 +300,94 @@ Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File 
           </Border>
         </StackPanel>
       </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Test email">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Border Style="{StaticResource Num}"><TextBlock Text="1" Style="{StaticResource NumText}"/></Border>
+                <TextBlock Text="Sign in to send" Style="{StaticResource CardTitle}"/>
+              </StackPanel>
+              <TextBlock Style="{StaticResource Hint}" Text="Sign in to Microsoft Graph as the sender, or as an account with Send As permission on the sender mailbox. It asks for Mail.Send and Mail.Send.Shared; an admin may need to approve them once. Use test mailboxes: these emails really are sent."/>
+              <Grid x:Name="GraphModulePanel" Visibility="Collapsed" Margin="0,0,0,10">
+                <Border Background="#FFF6E5" BorderBrush="{StaticResource Yellow}" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Text="The Microsoft.Graph.Authentication PowerShell module is needed and is not installed."/>
+                    <Button x:Name="InstallGraphBtn" Grid.Column="1" Content="Install module" Style="{StaticResource BtnGhost}" Padding="12,6"/>
+                  </Grid>
+                </Border>
+              </Grid>
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="GraphSignInBtn" Content="Sign in" Style="{StaticResource Btn}" Margin="0"/>
+                <Button x:Name="GraphSignOutBtn" Content="Sign out" Style="{StaticResource BtnGhost}" IsEnabled="False"/>
+                <TextBlock x:Name="GraphStatus" Text="Not signed in" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Muted}" TextWrapping="Wrap" MaxWidth="240"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Border Style="{StaticResource Num}"><TextBlock Text="2" Style="{StaticResource NumText}"/></Border>
+                <TextBlock Text="Mailboxes" Style="{StaticResource CardTitle}"/>
+              </StackPanel>
+              <TextBlock Text="Sender mailbox" Style="{StaticResource Label}"/>
+              <TextBox x:Name="TestSender" ToolTip="The mailbox the test emails are sent from, in the tenant being tested."/>
+              <TextBlock Text="Recipients" Style="{StaticResource Label}"/>
+              <TextBox x:Name="TestRecipients" ToolTip="One or more addresses, separated by commas or semicolons."/>
+              <TextBlock Style="{StaticResource Hint}" Text="The email rule only checks mail to people outside the organisation: send to an external test mailbox you control."/>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Border Style="{StaticResource Num}"><TextBlock Text="3" Style="{StaticResource NumText}"/></Border>
+                <TextBlock Text="Samples" Style="{StaticResource CardTitle}"/>
+              </StackPanel>
+              <TextBlock x:Name="SampleHint" Style="{StaticResource Hint}" Text="Expected results use the SIT packs and confidence chosen on the Deploy tab."/>
+              <StackPanel x:Name="SampleList"/>
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button x:Name="SelectAllBtn" Content="All" Style="{StaticResource BtnGhost}" Padding="12,4" Margin="0"/>
+                <Button x:Name="SelectCodeBtn" Content="Expected matches" Style="{StaticResource BtnGhost}" Padding="12,4"/>
+                <Button x:Name="SelectNoneBtn" Content="None" Style="{StaticResource BtnGhost}" Padding="12,4"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Border Style="{StaticResource Num}"><TextBlock Text="4" Style="{StaticResource NumText}"/></Border>
+                <TextBlock Text="Send" Style="{StaticResource CardTitle}"/>
+              </StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="Send each sample" Style="{StaticResource Label}"/>
+                  <ComboBox x:Name="TestFormat" SelectedIndex="0">
+                    <ComboBoxItem Content="As an attachment" Tag="Attachment"/>
+                    <ComboBoxItem Content="Pasted into the body" Tag="Body"/>
+                    <ComboBoxItem Content="Both (two emails each)" Tag="Both"/>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Subject tag" Style="{StaticResource Label}"/>
+                  <TextBox x:Name="SubjectPrefix" Text="DLP test"/>
+                </StackPanel>
+              </Grid>
+              <Button x:Name="SendBtn" Content="Send test emails" Style="{StaticResource BtnBurst}" Margin="0,4,0,8" HorizontalAlignment="Left" Padding="26,8"/>
+              <TextBlock Style="{StaticResource Hint}" Text="Policies apply about an hour after a change. Matches show in Activity explorer within one to two hours; search for the subject tag and run ID. A record of what was sent is saved to exports\."/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+      </TabItem>
+      </TabControl>
 
       <!-- log -->
       <Border Grid.Column="2" Background="{StaticResource Charcoal}" CornerRadius="6" Margin="0,0,0,12">
@@ -303,7 +415,7 @@ Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File 
           <ProgressBar x:Name="Busy" Width="90" Height="5" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,12,0" Foreground="{StaticResource Teal}" Background="{StaticResource Mist}" BorderThickness="0"/>
           <TextBlock x:Name="Status" Text="Sign in to begin." Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <StackPanel x:Name="DeployActions" Grid.Column="1" Orientation="Horizontal">
           <Button x:Name="LoadBtn" Content="Load settings" Style="{StaticResource BtnGhost}"/>
           <Button x:Name="SaveBtn" Content="Save settings" Style="{StaticResource BtnGhost}"/>
           <Button x:Name="PreviewBtn" Content="Preview changes" Style="{StaticResource Btn}" Margin="20,0,0,0"/>
@@ -367,6 +479,10 @@ function Set-Busy([bool]$busy, [string]$text) {
     $ui.PreviewBtn.IsEnabled = -not $busy
     $ui.DeployBtn.IsEnabled = -not $busy
     $ui.LoadBtn.IsEnabled = -not $busy
+    $ui.GraphSignInBtn.IsEnabled = -not $busy
+    $ui.GraphSignOutBtn.IsEnabled = (-not $busy) -and [bool]$script:graphSignedIn
+    $ui.InstallGraphBtn.IsEnabled = -not $busy
+    $ui.SendBtn.IsEnabled = -not $busy
 }
 # OnDone runs on the UI thread as: & $OnDone $failed $Ctx
 function Start-Work([string]$Title, [string]$Body, [hashtable]$P, [scriptblock]$OnDone, [hashtable]$Ctx = @{}) {
@@ -598,6 +714,168 @@ $ui.DeployBtn.Add_Click({
     } @{ RunDir = $runDir; LogStart = $script:logLines.Count }
 })
 
+# ---------- test email ----------
+$script:graphSignedIn = $null
+$script:sampleChecks = @{}
+$sitDefs = @((Get-Content (Join-Path $root 'definitions\code-sits.json') -Raw | ConvertFrom-Json).sits)
+$sampleDir = Join-Path $root 'tests\manual'
+
+# TEST-PLAN.md: per file, the confidence each SIT reaches (85 High, 75 Medium)
+function Read-TestPlan {
+    $plan = @{}; $f = Join-Path $sampleDir 'TEST-PLAN.md'
+    if (-not (Test-Path $f)) { return $plan }
+    $lines = @(Get-Content $f | Where-Object { $_ -like '|*' })
+    if ($lines.Count -lt 3) { return $plan }
+    $hdr = @($lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+    foreach ($l in $lines | Select-Object -Skip 2) {
+        $c = @($l.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+        $row = @{}; for ($k = 1; $k -lt $c.Count -and $k -lt $hdr.Count; $k++) { if ($c[$k] -match '^\d+$') { $row[$hdr[$k]] = [int]$c[$k] } }
+        $plan[$c[0]] = $row
+    }
+    $plan
+}
+$testPlan = Read-TestPlan
+
+# Expected outcome of the email rule for a sample, given the Deploy tab's SIT packs and confidence
+function Get-Expected([string]$file) {
+    if (-not $testPlan.ContainsKey($file)) { return @{ Match = $null; Text = 'not in the test plan' } }
+    $row = $testPlan[$file]
+    $names = @($sitDefs | Where-Object { $_.maturity -eq 'stable' -or ($ui.IncludeExperimental.IsChecked -and $_.maturity -eq 'experimental') } | ForEach-Object { $_.name })
+    $level = if ([string]$ui.Confidence.SelectedItem.Tag -eq 'High') { 85 } else { 75 }
+    $hits = @($names | Where-Object { $row[$_] -ge $level } | ForEach-Object { ($_ -replace '^Source Code - ', '') -replace ' Source Code$', '' })
+    if ($hits) { @{ Match = $true; Text = 'expect match: ' + ($hits -join ', ') } } else { @{ Match = $false; Text = 'expect no match' } }
+}
+function Update-Samples {
+    foreach ($cb in $ui.SampleList.Children) { $script:sampleChecks[[string]$cb.Tag] = [bool]$cb.IsChecked }
+    $ui.SampleList.Children.Clear()
+    if (-not (Test-Path $sampleDir)) { $ui.SampleHint.Text = "No samples found in $sampleDir."; return }
+    foreach ($f in Get-ChildItem $sampleDir -File | Where-Object { $_.Name -ne 'TEST-PLAN.md' } | Sort-Object Name) {
+        $exp = Get-Expected $f.Name
+        $cb = New-Object Windows.Controls.CheckBox
+        $cb.Tag = $f.FullName; $cb.Margin = '0,2,0,2'; $cb.VerticalContentAlignment = 'Top'
+        $sp = New-Object Windows.Controls.StackPanel
+        $t1 = New-Object Windows.Controls.TextBlock; $t1.Text = $f.Name; $t1.FontFamily = 'Consolas'
+        $t2 = New-Object Windows.Controls.TextBlock; $t2.FontSize = 11; $t2.TextWrapping = 'Wrap'
+        $t2.Text = $exp.Text + $(if ($f.Name -like '16_*') { ' (case check: meant for the SIT test tool)' } else { '' })
+        $t2.Foreground = if ($exp.Match) { $win.Resources['Teal'] } else { $win.Resources['Muted'] }
+        [void]$sp.Children.Add($t1); [void]$sp.Children.Add($t2); $cb.Content = $sp
+        $cb.ToolTip = $exp.Text
+        $cb.IsChecked = if ($script:sampleChecks.ContainsKey($f.FullName)) { $script:sampleChecks[$f.FullName] } else { $f.Name -notlike '16_*' }
+        $cb.Resources['Expected'] = $exp.Text; $cb.Resources['Match'] = $exp.Match
+        [void]$ui.SampleList.Children.Add($cb)
+    }
+}
+function Test-GraphModule {
+    $ok = [bool](Get-Module -ListAvailable Microsoft.Graph.Authentication)
+    $ui.GraphModulePanel.Visibility = if ($ok) { 'Collapsed' } else { 'Visible' }
+    return $ok
+}
+function Update-GraphSignIn {
+    $ui.GraphStatus.Text = if ($script:graphSignedIn) { "$($script:graphSignedIn.Account)" } else { 'Not signed in' }
+    $ui.GraphSignInBtn.Content = if ($script:graphSignedIn) { 'Switch account' } else { 'Sign in' }
+    $ui.GraphSignOutBtn.IsEnabled = [bool]$script:graphSignedIn
+    if ($script:graphSignedIn -and -not $ui.TestSender.Text.Trim()) { $ui.TestSender.Text = $script:graphSignedIn.Account }
+}
+
+$graphSignInBody = @'
+Import-Module Microsoft.Graph.Authentication
+if (Get-MgContext) { Disconnect-MgGraph | Out-Null }
+$global:GraphSignedIn = $null
+$c = @{ Scopes = @('Mail.Send', 'Mail.Send.Shared'); NoWelcome = $true }; if ($P.TenantId) { $c.TenantId = $P.TenantId }
+'Opening the Microsoft sign-in window for Microsoft Graph (it may appear behind this one)...'
+try { Connect-MgGraph @c -ErrorAction Stop }
+catch {
+    $opt = Get-Command Set-MgGraphOption -ErrorAction SilentlyContinue
+    if ($_.Exception.Message -match 'window handle|WAM|broker' -and $opt -and $opt.Parameters.ContainsKey('DisableLoginByWAM')) {
+        "Sign-in broker failed ($($_.Exception.Message.Split("`n")[0])). Retrying with the browser sign-in..."
+        Set-MgGraphOption -DisableLoginByWAM $true
+        Connect-MgGraph @c -ErrorAction Stop
+    } else { throw }
+}
+$ctx = Get-MgContext
+if (-not $ctx) { throw 'Graph sign-in did not complete.' }
+$global:GraphSignedIn = [pscustomobject]@{ Account = $ctx.Account; TenantId = $ctx.TenantId }
+"Signed in to Graph as $($ctx.Account), tenant ID $($ctx.TenantId)"
+'@
+
+$ui.GraphSignInBtn.Add_Click({
+    if (-not (Test-GraphModule)) { [void][Windows.MessageBox]::Show($win, 'Install the Microsoft.Graph.Authentication module first (button above).', 'Module needed', 'OK', 'Information'); return }
+    $tid = if ($script:signedIn) { $script:signedIn.TenantId } else { '' }
+    Start-Work 'Sign in to Microsoft Graph' $graphSignInBody @{ TenantId = $tid } {
+        param($failed, $ctx)
+        $script:graphSignedIn = $rs.SessionStateProxy.GetVariable('GraphSignedIn')
+        if ($failed -or -not $script:graphSignedIn) { $script:graphSignedIn = $null; Write-Log 'Graph sign-in did not complete.' }
+        Update-GraphSignIn
+    }
+})
+$ui.GraphSignOutBtn.Add_Click({
+    Start-Work 'Sign out of Microsoft Graph' 'Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null; "Signed out of Graph."' @{} {
+        param($failed, $ctx) $script:graphSignedIn = $null; Update-GraphSignIn
+    }
+})
+$ui.InstallGraphBtn.Add_Click({
+    $body = @'
+"Installing Microsoft.Graph.Authentication for the current user from the PowerShell Gallery..."
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+if (-not (Get-PackageProvider -ListAvailable -Name NuGet -ErrorAction SilentlyContinue)) { Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null }
+Install-Module Microsoft.Graph.Authentication -Scope CurrentUser -Force -AllowClobber
+"Installed."
+'@
+    Start-Work 'Install Microsoft.Graph.Authentication' $body @{} { param($failed, $ctx) [void](Test-GraphModule) }
+})
+$ui.SelectAllBtn.Add_Click({ foreach ($cb in $ui.SampleList.Children) { $cb.IsChecked = $true } })
+$ui.SelectNoneBtn.Add_Click({ foreach ($cb in $ui.SampleList.Children) { $cb.IsChecked = $false } })
+$ui.SelectCodeBtn.Add_Click({ foreach ($cb in $ui.SampleList.Children) { $cb.IsChecked = [bool]$cb.Resources['Match'] } })
+
+$sendBody = '$a = $P.Args; & (Join-Path $P.Root ''scripts\Send-DlpTestEmails.ps1'') @a'
+$ui.SendBtn.Add_Click({
+    $problems = @()
+    if (-not $script:graphSignedIn) { $problems += 'Sign in to Microsoft Graph first (step 1).' }
+    $sender = $ui.TestSender.Text.Trim()
+    if ($sender -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $problems += 'Enter the sender mailbox address.' }
+    $recips = @($ui.TestRecipients.Text -split '[,;\s]+' | Where-Object { $_ })
+    if (-not $recips) { $problems += 'Enter at least one recipient.' }
+    foreach ($r in $recips) { if ($r -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $problems += "Not an email address: $r" } }
+    $picked = @($ui.SampleList.Children | Where-Object { $_.IsChecked })
+    if (-not $picked) { $problems += 'Tick at least one sample.' }
+    $tag = $ui.SubjectPrefix.Text.Trim(); if (-not $tag) { $tag = 'DLP test' }
+    if ($problems) { [void][Windows.MessageBox]::Show($win, ($problems -join "`n"), 'Check the test settings', 'OK', 'Warning'); return }
+
+    $format = [string]$ui.TestFormat.SelectedItem.Tag
+    $count = $picked.Count * $(if ($format -eq 'Both') { 2 } else { 1 })
+    $internal = @($recips | Where-Object { ($_ -split '@')[-1] -ieq ($sender -split '@')[-1] })
+    $msg = "Send $count test email(s)?`n`nFrom: $sender`nTo: $($recips -join ', ')`nFormat: $([string]$ui.TestFormat.SelectedItem.Content)`nSigned in to Graph as: $($script:graphSignedIn.Account)"
+    if ($internal) { $msg += "`n`nNote: $($internal -join ', ') looks internal (same domain as the sender). The external email rule will not check those messages." }
+    if ([Windows.MessageBox]::Show($win, $msg, 'Send test emails', 'YesNo', 'Question', 'No') -ne 'Yes') { return }
+
+    $runId = Get-Date -Format 'yyyyMMdd-HHmm'
+    $dom = ($sender -split '@')[-1] -replace '[^\w.-]', '_'
+    $outDir = Join-Path $root ("exports\dlp-test-$dom-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+    $samples = @(foreach ($cb in $picked) { @{ Path = [string]$cb.Tag; Expected = [string]$cb.Resources['Expected'] } })
+    $a = @{ Sender = $sender; Recipients = $recips; Samples = $samples; Format = $format; SubjectPrefix = $tag; RunId = $runId
+            OutDir = $outDir; SkipConnect = $true; Force = $true }
+    Start-Work "Send $count test email(s) from $sender" $sendBody @{ Root = $root; Args = $a } {
+        param($failed, $ctx)
+        try {
+            New-Item -ItemType Directory -Force $ctx.OutDir | Out-Null
+            [IO.File]::WriteAllLines((Join-Path $ctx.OutDir 'send.log'), $script:logLines.GetRange($ctx.LogStart, $script:logLines.Count - $ctx.LogStart))
+        } catch { }
+        $ui.Status.Text = if ($failed) { 'Some test emails failed. See the Activity log.' } else { "Test emails sent. Search Activity explorer for '$($ctx.Tag) $($ctx.RunId)' in one to two hours." }
+    } @{ OutDir = $outDir; LogStart = $script:logLines.Count; Tag = $tag; RunId = $runId }
+})
+
+$ui.Tabs.Add_SelectionChanged({
+    param($sender, $e)
+    if ($e.OriginalSource -ne $ui.Tabs) { return }   # ignore ComboBox selection changes bubbling up
+    $testing = $ui.Tabs.SelectedIndex -eq 1
+    $ui.DeployActions.Visibility = if ($testing) { 'Collapsed' } else { 'Visible' }
+    if ($testing) {
+        Update-Samples; [void](Test-GraphModule)
+        if (-not $ui.TestSender.Text.Trim() -and $script:signedIn) { $ui.TestSender.Text = $script:signedIn.Upn }
+        $ui.Status.Text = 'Send code samples by email to test the external email rule.'
+    } else { Update-SignIn }
+})
+
 # ---------- misc ----------
 $ui.AppGroupOn.Add_Click({ $ui.AppGroupPanel.IsEnabled = [bool]$ui.AppGroupOn.IsChecked })
 $ui.ClearLogBtn.Add_Click({ $ui.Log.Clear(); $script:logLines.Clear() })
@@ -643,6 +921,9 @@ $win.Add_Closing({
         return
     }
     $timer.Stop()
+    if ($script:graphSignedIn) {
+        try { $ps = [powershell]::Create(); $ps.Runspace = $rs; [void]$ps.AddScript('Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null').Invoke(); $ps.Dispose() } catch { }
+    }
     if ($script:signedIn) {
         try { $ps = [powershell]::Create(); $ps.Runspace = $rs; [void]$ps.AddScript('Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue').Invoke(); $ps.Dispose() } catch { }
     }

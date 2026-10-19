@@ -29,11 +29,25 @@
    If a step fails, the later steps are skipped. Deploy only uses the settings you last previewed: change anything and you need to preview again.
 6. **Finish in the portal.** Follow [SETUP.md](SETUP.md) step 8 (scope the website rule to AI sites, add the desktop-app rule), then the field tests in step 9.
 
+## Test the email rule
+
+The **Test email** tab sends the files in `tests\manual` by email so you can confirm the *Code Sent to External Recipients* rule fires. These are real emails: use test mailboxes.
+
+1. **Sign in** to Microsoft Graph as the sender, or as an account with *Send As* on the sender mailbox. It asks for *Mail.Send* and *Mail.Send.Shared*; if the tenant blocks user consent, an admin approves them once. The app offers to install the `Microsoft.Graph.Authentication` module if it is missing.
+2. **Mailboxes:** the sender (in the tenant being tested) and one or more recipients. The rule only checks mail leaving the organisation, so send to an external mailbox you control. The app warns if a recipient shares the sender's domain.
+3. **Samples:** each file shows the expected result for the SIT packs and confidence on the Deploy tab (from `tests\manual\TEST-PLAN.md`). *Expected matches* ticks only those that should trigger the rule; keep a few "no match" files as negative controls.
+4. **Send** each sample as an attachment, pasted into the body, or both (two emails each). Subjects look like `[DLP test 20261019-1105] 04_csharp_class.cs (attachment)`.
+
+After one to two hours, search Activity explorer (activity *DLP rule matched*) or the audit log (record type `ComplianceDLPExchange`) for the subject tag and run ID, and compare with the expected column in `exports\dlp-test-<domain>-<date-time>\sent.csv`. Policies need about an hour after any change before they apply.
+
+From PowerShell: `.\scripts\Send-DlpTestEmails.ps1 -Sender alex@contoso.com -Recipients test@outside.example -Format Both`.
+
 ## Files it writes
 
 | Where | What |
 |---|---|
 | `exports\<domain>-<date-time>\` | `deploy.log`, `sit-backup\` (the tenant's custom rule packs before the change), `DlpAppGroups-backup-*.json` and `Restore-DlpAppGroups-*.ps1` |
+| `exports\dlp-test-<domain>-<date-time>\` | `sent.csv` (every test email with its subject and expected result) and `send.log` |
 | `profiles\<name>.json` | Settings saved with **Save settings**, to reuse for the next deployment or customer. No credentials are stored. |
 
 Both folders are git-ignored because they contain customer details.
