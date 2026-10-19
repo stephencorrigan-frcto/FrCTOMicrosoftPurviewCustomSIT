@@ -44,7 +44,7 @@ if ($CertificateThumbprint) {
 $include = @(
     'Deploy.cmd', 'README.md',
     'scripts\Start-Deployer.ps1', 'scripts\Invoke-CodeSitDeployment.ps1', 'scripts\Import-CustomSITs.ps1',
-    'scripts\Export-CustomSITs.ps1', 'scripts\New-CodeDlpPolicies.ps1', 'scripts\New-EndpointDlpAppGroup.ps1', 'scripts\Send-DlpTestEmails.ps1',
+    'scripts\Export-CustomSITs.ps1', 'scripts\New-CodeDlpPolicies.ps1', 'scripts\New-EndpointDlpAppGroup.ps1', 'scripts\Send-DlpTestEmails.ps1', 'scripts\Test-CodeSitDeployment.ps1',
     'sits', 'definitions', 'assets', 'docs', 'tests\manual'
 )
 foreach ($x in @('sits\code-sits-stable.xml', 'sits\code-sits-experimental.xml')) {

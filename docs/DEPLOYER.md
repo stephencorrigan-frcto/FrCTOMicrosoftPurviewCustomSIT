@@ -42,6 +42,27 @@ After one to two hours, search Activity explorer (activity *DLP rule matched*) o
 
 From PowerShell: `.\scripts\Send-DlpTestEmails.ps1 -Sender alex@contoso.com -Recipients test@outside.example -Format Both`.
 
+## Verify the deployment
+
+The **Analyze** tab gives one verdict for the tenant you signed in to on the Deploy tab. Checking is read-only.
+
+| Verdict | Means |
+|---|---|
+| **Deployment verified** (teal) | Every configuration check passes and every test email in the selected run behaved as expected. |
+| **Configuration verified, detection not tested** (charcoal) | Configuration passes; no test run is selected. Send test emails first. |
+| **Waiting for results** (yellow) | Policies are still distributing, or test emails have not shown up yet. |
+| **Not verified** (red) | Something failed. The banner names the first problems; the lists below show every check. |
+
+What it checks:
+
+- **Configuration:** the SIT rule packages and every code SIT; each Code DLP policy is on and has finished distributing; each rule exists, is enabled, and includes every code SIT; the AI desktop app group has its apps. Uses the Deploy tab's settings (prefix, packs, app group).
+- **Test emails:** pick a run (from the Test email tab). Each email is looked up by its subject in Activity explorer's DLP rule matches. An email that should match passes when found and fails if not found two hours after sending; one that should not match fails if it is found.
+- **Rule matches recorded:** how many matches each Code DLP rule has since the run was sent (or the last 24 hours), including endpoint rules from field tests.
+
+Tick *Re-check every 5 minutes* and leave the window open while results arrive. Each check also writes `verification.json` next to the run's `sent.csv`. From PowerShell: `.\scripts\Test-CodeSitDeployment.ps1 -AdminUpn admin@contoso.com`.
+
+Reading Activity explorer needs an Activity explorer role (Compliance Administrator includes it).
+
 ## Files it writes
 
 | Where | What |

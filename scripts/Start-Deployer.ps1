@@ -387,6 +387,54 @@ Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File 
         </StackPanel>
       </ScrollViewer>
       </TabItem>
+
+      <TabItem Header="Analyze">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <Border x:Name="VerdictBox" CornerRadius="6" Padding="20,16" Margin="0,0,0,12" Background="#5E676B">
+            <StackPanel>
+              <TextBlock x:Name="VerdictTitle" Text="Not checked yet" Foreground="White" FontFamily="Inter Black, Arial Black" FontWeight="Black" FontSize="24" TextWrapping="Wrap"/>
+              <TextBlock x:Name="VerdictText" Text="Sign in on the Deploy tab, then Check now." Foreground="White" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="13"/>
+              <TextBlock x:Name="VerdictTime" Foreground="White" Opacity="0.85" FontSize="11" Margin="0,8,0,0"/>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Test run to verify" Style="{StaticResource Label}"/>
+              <ComboBox x:Name="RunPicker"/>
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="CheckBtn" Content="Check now" Style="{StaticResource Btn}" Margin="0"/>
+                <CheckBox x:Name="AutoCheck" Content="Re-check every 5 minutes" Margin="14,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" Text="Read-only. Uses the Deploy tab's sign-in and settings. Results reach Activity explorer one to two hours after sending; a test email that should match is only failed after two hours."/>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Configuration" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+              <StackPanel x:Name="ConfigList"><TextBlock Style="{StaticResource Hint}" Text="Not checked yet."/></StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Test emails" Style="{StaticResource CardTitle}" Margin="0,0,0,4"/>
+              <TextBlock x:Name="RunText" Style="{StaticResource Hint}" Text="Not checked yet."/>
+              <StackPanel x:Name="EmailList"/>
+            </StackPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Rule matches recorded" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+              <StackPanel x:Name="MatchList"><TextBlock Style="{StaticResource Hint}" Text="Not checked yet."/></StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+      </TabItem>
       </TabControl>
 
       <!-- log -->
@@ -483,6 +531,7 @@ function Set-Busy([bool]$busy, [string]$text) {
     $ui.GraphSignOutBtn.IsEnabled = (-not $busy) -and [bool]$script:graphSignedIn
     $ui.InstallGraphBtn.IsEnabled = -not $busy
     $ui.SendBtn.IsEnabled = -not $busy
+    $ui.CheckBtn.IsEnabled = -not $busy
 }
 # OnDone runs on the UI thread as: & $OnDone $failed $Ctx
 function Start-Work([string]$Title, [string]$Body, [hashtable]$P, [scriptblock]$OnDone, [hashtable]$Ctx = @{}) {
@@ -860,15 +909,117 @@ $ui.SendBtn.Add_Click({
             New-Item -ItemType Directory -Force $ctx.OutDir | Out-Null
             [IO.File]::WriteAllLines((Join-Path $ctx.OutDir 'send.log'), $script:logLines.GetRange($ctx.LogStart, $script:logLines.Count - $ctx.LogStart))
         } catch { }
-        $ui.Status.Text = if ($failed) { 'Some test emails failed. See the Activity log.' } else { "Test emails sent. Search Activity explorer for '$($ctx.Tag) $($ctx.RunId)' in one to two hours." }
+        $ui.Status.Text = if ($failed) { 'Some test emails failed. See the Activity log.' } else { "Test emails sent. Track them on the Analyze tab; results take one to two hours." }
     } @{ OutDir = $outDir; LogStart = $script:logLines.Count; Tag = $tag; RunId = $runId }
 })
+
+# ---------- analyze ----------
+function Update-Runs {
+    $keep = if ($ui.RunPicker.SelectedItem) { [string]$ui.RunPicker.SelectedItem.Tag } else { '' }
+    $ui.RunPicker.Items.Clear()
+    $none = New-Object Windows.Controls.ComboBoxItem; $none.Content = 'No test run (configuration only)'; $none.Tag = ''
+    $runs = @(Get-ChildItem (Join-Path $root 'exports') -Filter sent.csv -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+    foreach ($f in $runs) {
+        $rows = @(Import-Csv $f.FullName -ErrorAction SilentlyContinue)
+        if (-not $rows) { continue }
+        $it = New-Object Windows.Controls.ComboBoxItem
+        $it.Content = "Run $($rows[0].RunId): $(@($rows | Where-Object Status -eq 'Sent').Count) sent from $($rows[0].Sender)"
+        $it.Tag = $f.FullName; $it.ToolTip = $f.FullName
+        [void]$ui.RunPicker.Items.Add($it)
+    }
+    [void]$ui.RunPicker.Items.Add($none)
+    $sel = $ui.RunPicker.Items | Where-Object { [string]$_.Tag -eq $keep -and $keep } | Select-Object -First 1
+    $ui.RunPicker.SelectedItem = if ($sel) { $sel } else { $ui.RunPicker.Items[0] }
+}
+function New-StatusRow([string]$status, [string]$title, [string]$detail) {
+    $colors = @{ Pass = '#009A9A'; Fail = '#EE3124'; Wait = '#FBB033'; Info = '#5E676B' }
+    $words = @{ Pass = 'PASS'; Fail = 'FAIL'; Wait = 'WAIT'; Info = 'INFO' }
+    $g = New-Object Windows.Controls.Grid; $g.Margin = '0,3,0,3'
+    $c0 = New-Object Windows.Controls.ColumnDefinition; $c0.Width = 'Auto'; $g.ColumnDefinitions.Add($c0)
+    $c1 = New-Object Windows.Controls.ColumnDefinition; $g.ColumnDefinitions.Add($c1)
+    $pill = New-Object Windows.Controls.Border; $pill.CornerRadius = 3; $pill.Padding = '6,1'; $pill.Margin = '0,1,10,0'; $pill.VerticalAlignment = 'Top'; $pill.Width = 46
+    $pill.Background = New-Object Windows.Media.SolidColorBrush ([Windows.Media.ColorConverter]::ConvertFromString($colors[$status]))
+    $pt = New-Object Windows.Controls.TextBlock; $pt.Text = $words[$status]; $pt.FontSize = 10; $pt.FontWeight = 'Bold'; $pt.HorizontalAlignment = 'Center'
+    $pt.Foreground = if ($status -eq 'Wait') { $win.Resources['Charcoal'] } else { [Windows.Media.Brushes]::White }
+    $pill.Child = $pt
+    $sp = New-Object Windows.Controls.StackPanel; [Windows.Controls.Grid]::SetColumn($sp, 1)
+    $t1 = New-Object Windows.Controls.TextBlock; $t1.Text = $title; $t1.FontWeight = 'SemiBold'; $t1.TextWrapping = 'Wrap'
+    $t2 = New-Object Windows.Controls.TextBlock; $t2.Text = $detail; $t2.FontSize = 11; $t2.Foreground = $win.Resources['Muted']; $t2.TextWrapping = 'Wrap'
+    [void]$sp.Children.Add($t1); if ($detail) { [void]$sp.Children.Add($t2) }
+    [void]$g.Children.Add($pill); [void]$g.Children.Add($sp)
+    $g
+}
+function Show-Verification($v) {
+    $tick = [string][char]0x2713; $cross = [string][char]0x2717
+    $look = @{
+        Verified       = @('#009A9A', 'White', "$tick  Deployment verified")
+        ConfigVerified = @('#383F42', 'White', "$tick  Configuration verified, detection not tested")
+        Waiting        = @('#FBB033', '#383F42', 'Waiting for results')
+        NotVerified    = @('#EE3124', 'White', "$cross  Not verified")
+    }[$v.Verdict]
+    $ui.VerdictBox.Background = New-Object Windows.Media.SolidColorBrush ([Windows.Media.ColorConverter]::ConvertFromString($look[0]))
+    $fg = New-Object Windows.Media.SolidColorBrush ([Windows.Media.ColorConverter]::ConvertFromString($look[1]))
+    foreach ($t in @($ui.VerdictTitle, $ui.VerdictText, $ui.VerdictTime)) { $t.Foreground = $fg }
+    $ui.VerdictTitle.Text = $look[2]
+    $ui.VerdictText.Text = $v.Summary
+    $ui.VerdictTime.Text = "Checked $($v.Checked.ToString('HH:mm')) for $(Get-TenantTag)" + $(if ($ui.AutoCheck.IsChecked) { '. Re-checking every 5 minutes.' } else { '.' })
+
+    $ui.ConfigList.Children.Clear()
+    foreach ($c in @($v.Checks)) { [void]$ui.ConfigList.Children.Add((New-StatusRow $c.Status $c.Name $c.Detail)) }
+
+    $ui.EmailList.Children.Clear()
+    if ($v.Run) {
+        $ui.RunText.Text = "Run $($v.Run.RunId): $($v.Run.Count) email(s) sent $($v.Run.Sent.ToString('dd MMM HH:mm')) from $($v.Run.Sender) to $($v.Run.Recipients)."
+        foreach ($e in @($v.Emails)) {
+            $obs = if ($e.Observed) { "matched: $($e.Rules)" } else { 'no match recorded yet' }
+            [void]$ui.EmailList.Children.Add((New-StatusRow $e.Status "$($e.File) ($($e.Format))" "$($e.ExpectedText); $obs"))
+        }
+    } else { $ui.RunText.Text = 'No test run selected. Send test emails from the Test email tab to verify detection.' }
+
+    $ui.MatchList.Children.Clear()
+    foreach ($k in $v.RuleMatches.Keys) {
+        $n = $v.RuleMatches[$k]
+        [void]$ui.MatchList.Children.Add((New-StatusRow $(if ($n) { 'Pass' } else { 'Info' }) $k "$n match(es) recorded in Activity explorer"))
+    }
+}
+
+$checkBody = '$a = $P.Args; & (Join-Path $P.Root ''scripts\Test-CodeSitDeployment.ps1'') @a'
+function Start-Check([bool]$quiet) {
+    if ($script:job) { return }
+    if (-not $script:signedIn) {
+        if (-not $quiet) { [void][Windows.MessageBox]::Show($win, 'Sign in to the customer tenant on the Deploy tab first. Checking is read-only.', 'Not signed in', 'OK', 'Information') }
+        return
+    }
+    $s = Get-Settings
+    $exes = @($s.Apps -split "`r?`n" | ForEach-Object { ($_ -split '=', 2)[-1].Trim() } | Where-Object { $_ })
+    $a = @{ SkipConnect = $true; Prefix = $s.Prefix; IncludeExperimental = $s.IncludeExperimental; IncludeAttachmentAudit = $s.AttachmentAudit
+            SkipAppGroup = -not $s.AppGroup; AppGroupName = $s.AppGroupName; AppExecutables = $exes }
+    $csv = if ($ui.RunPicker.SelectedItem) { [string]$ui.RunPicker.SelectedItem.Tag } else { '' }
+    if ($csv) { $a.SentCsv = $csv } else { $a.SentCsv = Join-Path $root 'exports\none\sent.csv' }   # a path that does not exist = configuration only
+    Start-Work "Verify $(Get-TenantTag)" $checkBody @{ Root = $root; Args = $a } {
+        param($failed, $ctx)
+        $v = $rs.SessionStateProxy.GetVariable('CodeSitVerification')
+        if ($failed -or -not $v) { $ui.Status.Text = 'The check could not finish. See the Activity log.'; return }
+        Show-Verification $v
+        $ui.Status.Text = "Verdict: $($v.Verdict). $($v.Summary)"
+    }
+}
+$ui.CheckBtn.Add_Click({ Start-Check $false })
+$autoTimer = New-Object Windows.Threading.DispatcherTimer
+$autoTimer.Interval = [TimeSpan]::FromMinutes(5)
+$autoTimer.Add_Tick({ if ($ui.AutoCheck.IsChecked) { Start-Check $true } })
+$autoTimer.Start()
 
 $ui.Tabs.Add_SelectionChanged({
     param($sender, $e)
     if ($e.OriginalSource -ne $ui.Tabs) { return }   # ignore ComboBox selection changes bubbling up
     $testing = $ui.Tabs.SelectedIndex -eq 1
-    $ui.DeployActions.Visibility = if ($testing) { 'Collapsed' } else { 'Visible' }
+    $ui.DeployActions.Visibility = if ($ui.Tabs.SelectedIndex -eq 0) { 'Visible' } else { 'Collapsed' }
+    if ($ui.Tabs.SelectedIndex -eq 2) {
+        Update-Runs
+        $ui.Status.Text = if ($script:signedIn) { 'Check now to verify the deployment.' } else { 'Sign in on the Deploy tab to verify the deployment.' }
+        return
+    }
     if ($testing) {
         Update-Samples; [void](Test-GraphModule)
         if (-not $ui.TestSender.Text.Trim() -and $script:signedIn) { $ui.TestSender.Text = $script:signedIn.Upn }
