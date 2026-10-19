@@ -3,7 +3,8 @@
   Creates DLP policies that use the code SITs from this repo. Preview by default; -Apply creates them.
 
 .DESCRIPTION
-  Creates NEW policies only (existing policies with the same name are skipped, nothing is edited or removed):
+  Creates NEW policies only. An existing policy with the same name is skipped, unless this script created it and it
+  is missing rules (for example after a failed run): then only the missing rules are added. Nothing is edited or removed:
 
     <Prefix> - External Email        Exchange, all mailboxes
         rule "Code Sent to External Recipients"   code SIT match + recipient outside the organisation -> alert, audit only
@@ -26,12 +27,22 @@
 .PARAMETER Confidence
   High (default) or Medium for the code SITs in the alerting rules. The copy-off-device rule always uses High.
 
+.PARAMETER AdminUpn
+  Optional. Pre-fills the Microsoft sign-in window; leave it out to be asked for the account.
+
+.PARAMETER SkipConnect
+  Use the Security & Compliance session that is already open (Connect-IPPSSession) and leave it open.
+  Used by Start-Deployer.ps1 and Invoke-CodeSitDeployment.ps1.
+
+.PARAMETER Force
+  With -Apply, do not ask for YES (the caller has already confirmed).
+
 .EXAMPLE
   .\New-CodeDlpPolicies.ps1 -AdminUpn admin@contoso.com -AlertRecipients secops@contoso.com
   .\New-CodeDlpPolicies.ps1 -AdminUpn admin@contoso.com -AlertRecipients secops@contoso.com -IncludeAttachmentAudit -Apply
 #>
 param(
-    [Parameter(Mandatory)][string]$AdminUpn,
+    [string]$AdminUpn,
     [Parameter(Mandatory)][string[]]$AlertRecipients,
     [string]$Prefix = 'Code DLP',
     [ValidateSet('TestWithoutNotifications', 'TestWithNotifications', 'Enable', 'Disable')][string]$Mode = 'TestWithoutNotifications',
@@ -40,73 +51,120 @@ param(
     [switch]$IncludeSourceCodeClassifier,
     [switch]$IncludeAttachmentAudit,
     [switch]$Apply,
+    [switch]$Force,
+    [switch]$SkipConnect,
     [string]$Definitions = (Join-Path $PSScriptRoot '..\definitions\code-sits.json')
 )
 $ErrorActionPreference = 'Stop'
 $defs = Get-Content $Definitions -Raw | ConvertFrom-Json
 $wanted = @($defs.sits | Where-Object { $_.maturity -eq 'stable' -or ($IncludeExperimental -and $_.maturity -eq 'experimental') } | ForEach-Object { $_.name })
-$minConf = if ($Confidence -eq 'High') { '85' } else { '75' }
+$minConf = $Confidence   # Purview confidence level: High (85) or Medium (75)
 
-function Get-SitList([string]$min) {
-    $list = @(foreach ($n in $wanted) { @{ Name = $n; minCount = '1'; minConfidence = $min; maxConfidence = '100' } })
-    if ($IncludeSourceCodeClassifier) { $list += @{ Name = 'Source code'; ClassifierType = 'MLModel' } }   # Microsoft trainable classifier
-    return , $list
+# Content condition. Microsoft's trainable classifier is only accepted inside the "groups" form of the condition.
+function Get-SitCondition([string]$level, [bool]$classifier) {
+    $types = @(foreach ($n in $wanted) { @{ name = $n; mincount = '1'; confidencelevel = $level } })
+    if (-not $classifier) { return , $types }
+    $types += @{ name = 'Source code'; classifiertype = 'MLModel' }   # Microsoft trainable classifier
+    return @{ operator = 'And'; groups = @(@{ operator = 'Or'; name = 'Default'; sensitivetypes = $types }) }
 }
+$toolComment = 'Created by New-CodeDlpPolicies.ps1 (custom code SITs).'
 
+# Rules: MinConfidence = the code SIT confidence level for the content condition ($null = no content condition)
 $plan = @(
     [ordered]@{ Policy = "$Prefix - External Email"; Location = 'Exchange'; Rules = @(
-        [ordered]@{ Name = 'Code Sent to External Recipients'; Params = @{ AccessScope = 'NotInOrganization'; ContentContainsSensitiveInformation = (Get-SitList $minConf); GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High' } }) }
+        [ordered]@{ Name = 'Code Sent to External Recipients'; MinConfidence = $minConf; Params = @{ AccessScope = 'NotInOrganization'; GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High' } }) }
     [ordered]@{ Policy = "$Prefix - Endpoint"; Location = 'Endpoint'; Rules = @(
-        [ordered]@{ Name = 'Code Pasted or Uploaded to Websites'; Params = @{ ContentContainsSensitiveInformation = (Get-SitList $minConf); GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High'
+        [ordered]@{ Name = 'Code Pasted or Uploaded to Websites'; MinConfidence = $minConf; Params = @{ GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High'
                     EndpointDlpRestrictions = @(@{ Setting = 'PasteToBrowser'; Value = 'Audit' }, @{ Setting = 'CloudEgress'; Value = 'Audit' }) } }
-        [ordered]@{ Name = 'Code Copied Off Device'; Params = @{ ContentContainsSensitiveInformation = (Get-SitList '85'); ReportSeverityLevel = 'Low'
+        [ordered]@{ Name = 'Code Copied Off Device'; MinConfidence = 'High'; Params = @{ ReportSeverityLevel = 'Low'
                     EndpointDlpRestrictions = @(@{ Setting = 'CopyPaste'; Value = 'Audit' }, @{ Setting = 'NetworkShare'; Value = 'Audit' }, @{ Setting = 'RemovableMedia'; Value = 'Audit' }) } }) }
 )
 if ($IncludeAttachmentAudit) {
     $plan += [ordered]@{ Policy = "$Prefix - External Attachments"; Location = 'Exchange'; Rules = @(
-        [ordered]@{ Name = 'External Email With Attachment'; Params = @{ AccessScope = 'NotInOrganization'; DocumentSizeOver = '1B'; ReportSeverityLevel = 'Low' } }) }
+        [ordered]@{ Name = 'External Email With Attachment'; MinConfidence = $null; Params = @{ AccessScope = 'NotInOrganization'; DocumentSizeOver = '1B'; ReportSeverityLevel = 'Low' } }) }
 }
 
-Import-Module ExchangeOnlineManagement
-Connect-IPPSSession -UserPrincipalName $AdminUpn -ShowBanner:$false
+function New-PlannedRule($p, $r) {
+    $prm = $r.Params.Clone()
+    if ($r.MinConfidence) { $prm.ContentContainsSensitiveInformation = Get-SitCondition $r.MinConfidence $IncludeSourceCodeClassifier.IsPresent }
+    try { New-DlpComplianceRule -Name $r.Name -Policy $p.Policy @prm -ErrorAction Stop | Out-Null; "  created rule: $($r.Name)"; return }
+    catch {
+        if (-not ($IncludeSourceCodeClassifier -and $r.MinConfidence) -or $_.Exception.Message -match 'GenerateAlert') { throw }
+        Write-Warning "  rule '$($r.Name)' was refused with Microsoft's classifier ($($_.Exception.Message.Split("`n")[0].Trim('|'))). Retrying without it; add it in the portal."
+    }
+    $prm.ContentContainsSensitiveInformation = Get-SitCondition $r.MinConfidence $false
+    New-DlpComplianceRule -Name $r.Name -Policy $p.Policy @prm -ErrorAction Stop | Out-Null; "  created rule (without classifier): $($r.Name)"
+}
+
+if (-not $SkipConnect) {
+    Import-Module ExchangeOnlineManagement
+    $conn = @{ ShowBanner = $false }; if ($AdminUpn) { $conn.UserPrincipalName = $AdminUpn }
+    Connect-IPPSSession @conn   # Microsoft sign-in window: username, password, MFA
+}
 try {
     # prerequisites: SITs present
     $missing = @($wanted | Where-Object { -not (Get-DlpSensitiveInformationType -Identity $_ -ErrorAction SilentlyContinue) })
-    if ($missing) { "These SITs are not in the tenant: $($missing -join ', '). Import them first (scripts\Import-CustomSITs.ps1). Nothing changed."; return }
+    if ($missing) {
+        if ($Apply) { "These SITs are not in the tenant: $($missing -join ', '). Import them first (scripts\Import-CustomSITs.ps1). Nothing changed."; return }
+        Write-Warning "Not in the tenant yet: $($missing -join ', '). They must be imported before the policies can be created."
+    }
+
+    # alert recipients must resolve in this tenant; check when the session can look them up
+    if (Get-Command Get-Recipient -ErrorAction SilentlyContinue) {
+        $unknown = @($AlertRecipients | Where-Object { $_ -ne 'SiteAdmin' -and -not (Get-Recipient -Identity $_ -ErrorAction SilentlyContinue) })
+        if ($unknown) { Write-Warning "Alert recipients not found in this tenant: $($unknown -join ', '). Purview only accepts mailboxes, mail users or contacts in the tenant (or SiteAdmin); the alerting rules will fail." }
+    }
 
     "== Plan (mode: $Mode, code SIT confidence: $Confidence, alerts to: $($AlertRecipients -join ', '))"
     "SITs used: $($wanted -join ', ')" + $(if ($IncludeSourceCodeClassifier) { ', Source code (Microsoft classifier)' } else { '' })
     foreach ($p in $plan) {
-        $exists = [bool](Get-DlpCompliancePolicy -Identity $p.Policy -ErrorAction SilentlyContinue)
-        $p.Exists = $exists
-        "`nPolicy: $($p.Policy)  [$($p.Location)]" + $(if ($exists) { '  -> ALREADY EXISTS, will be skipped' } else { '' })
+        $existing = Get-DlpCompliancePolicy -Identity $p.Policy -ErrorAction SilentlyContinue
+        $p.Exists = [bool]$existing
+        $p.Todo = @($p.Rules)
+        $note = ''
+        if ($existing) {
+            if ([string]$existing.Comment -ne $toolComment) { $p.Todo = @(); $note = '  -> ALREADY EXISTS (not created by this tool), skipped' }
+            else {
+                $have = @(Get-DlpComplianceRule -Policy $p.Policy -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+                $p.Todo = @($p.Rules | Where-Object { $have -notcontains $_.Name })
+                $note = if ($p.Todo) { "  -> EXISTS, $($p.Todo.Count) missing rule(s) will be added" } else { '  -> ALREADY EXISTS and complete, skipped' }
+            }
+        }
+        "`nPolicy: $($p.Policy)  [$($p.Location)]$note"
         foreach ($r in $p.Rules) {
             $acts = if ($r.Params.EndpointDlpRestrictions) { ($r.Params.EndpointDlpRestrictions | ForEach-Object { "$($_.Setting)=$($_.Value)" }) -join ', ' } else { 'audit' }
-            "  rule: $($r.Name)  | actions: $acts | alert: $(if ($r.Params.GenerateAlert) { 'yes' } else { 'no (log only)' })"
+            $mark = if ($p.Todo -contains $r) { '' } else { '  (exists)' }
+            "  rule: $($r.Name)$mark  | actions: $acts | alert: $(if ($r.Params.GenerateAlert) { 'yes' } else { 'no (log only)' })"
         }
     }
     if (-not $Apply) { "`nPREVIEW ONLY. Nothing changed. Re-run with -Apply to create these policies."; return }
-    if ((Read-Host "`nType YES to create the policies above") -cne 'YES') { "Cancelled. Nothing changed."; return }
+    if (-not $Force -and (Read-Host "`nType YES to create the policies above") -cne 'YES') { "Cancelled. Nothing changed."; return }
 
-    foreach ($p in ($plan | Where-Object { -not $_.Exists })) {
+    $failures = @()
+    foreach ($p in ($plan | Where-Object { $_.Todo })) {
         try {
-            $locParams = if ($p.Location -eq 'Exchange') { @{ ExchangeLocation = 'All' } } else { @{ EndpointDlpLocation = 'All' } }
-            New-DlpCompliancePolicy -Name $p.Policy -Mode $Mode @locParams -Comment 'Created by New-CodeDlpPolicies.ps1 (custom code SITs).' | Out-Null
-            "Created policy: $($p.Policy)"
-            foreach ($r in $p.Rules) {
-                $prm = $r.Params.Clone()
-                try { New-DlpComplianceRule -Name $r.Name -Policy $p.Policy @prm -ErrorAction Stop | Out-Null; "  created rule: $($r.Name)" }
-                catch {
-                    if ($IncludeSourceCodeClassifier -and $prm.ContentContainsSensitiveInformation) {
-                        Write-Warning "  rule '$($r.Name)' failed with the classifier included ($($_.Exception.Message.Split("`n")[0])). Retrying without it."
-                        $prm.ContentContainsSensitiveInformation = @($prm.ContentContainsSensitiveInformation | Where-Object { -not $_.ClassifierType })
-                        New-DlpComplianceRule -Name $r.Name -Policy $p.Policy @prm -ErrorAction Stop | Out-Null; "  created rule (without classifier): $($r.Name)"
-                    } else { throw }
-                }
+            if (-not $p.Exists) {
+                $locParams = if ($p.Location -eq 'Exchange') { @{ ExchangeLocation = 'All' } } else { @{ EndpointDlpLocation = 'All' } }
+                New-DlpCompliancePolicy -Name $p.Policy -Mode $Mode @locParams -Comment $toolComment | Out-Null
+                "Created policy: $($p.Policy)"
+            } else { "Completing policy: $($p.Policy)" }
+        } catch { $failures += "policy '$($p.Policy)': $($_.Exception.Message.Trim('|'))"; "FAILED: policy '$($p.Policy)'"; continue }
+        foreach ($r in $p.Todo) {
+            try { New-PlannedRule $p $r }
+            catch {
+                $msg = $_.Exception.Message.Split("`n")[0].Trim('|')
+                if ($msg -match 'GenerateAlert') { $msg = "an alert recipient is not a mailbox, mail user or contact in this tenant ($($AlertRecipients -join ', ')). Use an address in the customer's tenant, or SiteAdmin, and run again: missing rules are added to the policy." }
+                $failures += "rule '$($r.Name)': $msg"; "  FAILED: rule '$($r.Name)'"
             }
-        } catch { "FAILED on policy '$($p.Policy)': $($_.Exception.Message)" }
+        }
     }
-    "`nDone. Policies are in mode '$Mode'. Review matches in Activity explorer before switching to Enable:"
-    "  Set-DlpCompliancePolicy -Identity '<policy name>' -Mode Enable"
+    if ($failures) {
+        "`nNot created:"; $failures | ForEach-Object { "  - $_" }
+        throw "$($failures.Count) policy item(s) were not created. Fix the cause above and run again; existing items are kept and only the missing ones are added."
+    }
+    if ($Mode -like 'Test*') {
+        "`nDone. Policies are in simulation ($Mode). Review matches in Activity explorer, then switch each on:"
+        "  Set-DlpCompliancePolicy -Identity '<policy name>' -Mode Enable"
+    } else { "`nDone. Policies are in mode '$Mode'." }
 }
-finally { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue }
+finally { if (-not $SkipConnect) { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue } }

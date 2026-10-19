@@ -4,6 +4,8 @@ Custom sensitive information types (SITs) that detect source code, with scripts 
 
 This is the **code-sits** branch of the custom SIT library. Other SIT families live on their own branches (see `main`).
 
+**Deploying to a customer? Double-click `Deploy.cmd`.** A Windows app walks you through sign-in, settings, a preview of every change and the deployment. See [Deploy with the app](docs/DEPLOYER.md).
+
 **Deploying for the first time? Follow the [full setup guide](docs/SETUP.md)**: prerequisites, device onboarding, browsers, Endpoint DLP settings, SITs, policies, portal steps, field testing and go-live.
 
 ## What's here
@@ -16,6 +18,11 @@ This is the **code-sits** branch of the custom SIT library. Other SIT families l
 | `scripts/Import-CustomSITs.ps1` | Adds or updates a rule package in a tenant (preview, then type YES). |
 | `scripts/Export-CustomSITs.ps1` | Read-only export of a tenant's custom rule packages. |
 | `scripts/New-CodeDlpPolicies.ps1` | Creates email and endpoint DLP policies that use the SITs (preview by default, simulation mode). |
+| `Deploy.cmd`, `scripts/Start-Deployer.ps1` | The deployer app: sign in, choose settings, preview, deploy. Saves per-customer settings to `profiles\` (git-ignored). |
+| `scripts/Send-DlpTestEmails.ps1` | Sends the manual test files by email (attachment, body or both) through Microsoft Graph and records what was sent. The app's *Test email* tab uses it. |
+| `scripts/Test-CodeSitDeployment.ps1` | Read-only verification: configuration checks plus test emails compared with Activity explorer matches, ending in one verdict. The app's *Analyze* tab uses it. |
+| `scripts/Build-Release.ps1` | Builds the customer download: a zip with only the runtime files, optionally code-signed, with checksums. |
+| `scripts/Invoke-CodeSitDeployment.ps1` | Runs every tenant step in order with one sign-in (SIT backup, SIT import, app group, policies). Used by the app; also works on its own. |
 | `scripts/New-EndpointDlpAppGroup.ps1` | Creates or extends an Endpoint DLP restricted app group (default *AI desktop apps* with `claude.exe`), keeping all existing groups, with a backup and restore script. |
 | `tests/Test-CodeSITs.ps1` | Offline harness: scores the rule packages against the sample corpora in case-sensitive and case-insensitive mode. |
 | `tests/samples/` | 268 code samples (10 languages) and 84 non-code samples, in six sets. All synthetic. |
@@ -43,6 +50,10 @@ This is the **code-sits** branch of the custom SIT library. Other SIT families l
 **Realistic expectation:** whole files and longer snippets are caught reliably; short one- to three-line fragments are not. Regex SITs cannot learn general code shape. Pair them with Microsoft's built-in *Source code* trainable classifier in your DLP rules.
 
 ## Quick start
+
+**With the app (recommended for customer deployments):** double-click `Deploy.cmd`, sign in, fill in the four steps, *Preview changes*, then *Deploy*. Details: [docs/DEPLOYER.md](docs/DEPLOYER.md).
+
+**From PowerShell:**
 
 ```powershell
 # 1. Build the rule packages from the definitions
