@@ -26,12 +26,22 @@
 .PARAMETER Confidence
   High (default) or Medium for the code SITs in the alerting rules. The copy-off-device rule always uses High.
 
+.PARAMETER AdminUpn
+  Optional. Pre-fills the Microsoft sign-in window; leave it out to be asked for the account.
+
+.PARAMETER SkipConnect
+  Use the Security & Compliance session that is already open (Connect-IPPSSession) and leave it open.
+  Used by Start-Deployer.ps1 and Invoke-CodeSitDeployment.ps1.
+
+.PARAMETER Force
+  With -Apply, do not ask for YES (the caller has already confirmed).
+
 .EXAMPLE
   .\New-CodeDlpPolicies.ps1 -AdminUpn admin@contoso.com -AlertRecipients secops@contoso.com
   .\New-CodeDlpPolicies.ps1 -AdminUpn admin@contoso.com -AlertRecipients secops@contoso.com -IncludeAttachmentAudit -Apply
 #>
 param(
-    [Parameter(Mandatory)][string]$AdminUpn,
+    [string]$AdminUpn,
     [Parameter(Mandatory)][string[]]$AlertRecipients,
     [string]$Prefix = 'Code DLP',
     [ValidateSet('TestWithoutNotifications', 'TestWithNotifications', 'Enable', 'Disable')][string]$Mode = 'TestWithoutNotifications',
@@ -40,6 +50,8 @@ param(
     [switch]$IncludeSourceCodeClassifier,
     [switch]$IncludeAttachmentAudit,
     [switch]$Apply,
+    [switch]$Force,
+    [switch]$SkipConnect,
     [string]$Definitions = (Join-Path $PSScriptRoot '..\definitions\code-sits.json')
 )
 $ErrorActionPreference = 'Stop'
@@ -67,12 +79,18 @@ if ($IncludeAttachmentAudit) {
         [ordered]@{ Name = 'External Email With Attachment'; Params = @{ AccessScope = 'NotInOrganization'; DocumentSizeOver = '1B'; ReportSeverityLevel = 'Low' } }) }
 }
 
-Import-Module ExchangeOnlineManagement
-Connect-IPPSSession -UserPrincipalName $AdminUpn -ShowBanner:$false
+if (-not $SkipConnect) {
+    Import-Module ExchangeOnlineManagement
+    $conn = @{ ShowBanner = $false }; if ($AdminUpn) { $conn.UserPrincipalName = $AdminUpn }
+    Connect-IPPSSession @conn   # Microsoft sign-in window: username, password, MFA
+}
 try {
     # prerequisites: SITs present
     $missing = @($wanted | Where-Object { -not (Get-DlpSensitiveInformationType -Identity $_ -ErrorAction SilentlyContinue) })
-    if ($missing) { "These SITs are not in the tenant: $($missing -join ', '). Import them first (scripts\Import-CustomSITs.ps1). Nothing changed."; return }
+    if ($missing) {
+        if ($Apply) { "These SITs are not in the tenant: $($missing -join ', '). Import them first (scripts\Import-CustomSITs.ps1). Nothing changed."; return }
+        Write-Warning "Not in the tenant yet: $($missing -join ', '). They must be imported before the policies can be created."
+    }
 
     "== Plan (mode: $Mode, code SIT confidence: $Confidence, alerts to: $($AlertRecipients -join ', '))"
     "SITs used: $($wanted -join ', ')" + $(if ($IncludeSourceCodeClassifier) { ', Source code (Microsoft classifier)' } else { '' })
@@ -86,7 +104,7 @@ try {
         }
     }
     if (-not $Apply) { "`nPREVIEW ONLY. Nothing changed. Re-run with -Apply to create these policies."; return }
-    if ((Read-Host "`nType YES to create the policies above") -cne 'YES') { "Cancelled. Nothing changed."; return }
+    if (-not $Force -and (Read-Host "`nType YES to create the policies above") -cne 'YES') { "Cancelled. Nothing changed."; return }
 
     foreach ($p in ($plan | Where-Object { -not $_.Exists })) {
         try {
@@ -109,4 +127,4 @@ try {
     "`nDone. Policies are in mode '$Mode'. Review matches in Activity explorer before switching to Enable:"
     "  Set-DlpCompliancePolicy -Identity '<policy name>' -Mode Enable"
 }
-finally { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue }
+finally { if (-not $SkipConnect) { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue } }

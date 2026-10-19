@@ -1,3 +1,6 @@
 # Tenant exports can contain tenant-specific IDs; keep them out of the repo
 exports/
 *.bak
+
+# Per-customer deployer settings (customer names, alert addresses)
+profiles/

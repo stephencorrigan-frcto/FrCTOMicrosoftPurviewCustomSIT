@@ -2,6 +2,8 @@
 
 End-to-end deployment of the code detection SITs and DLP policies in a Microsoft Purview tenant, from prerequisites to go-live. Steps marked **(portal)** have no supported script yet.
 
+Steps 4, 6 and 7 can be done in one go with the deployer app (`Deploy.cmd`, see [DEPLOYER.md](DEPLOYER.md)) or `scripts\Invoke-CodeSitDeployment.ps1`. The other steps still apply.
+
 Every script that changes a tenant previews first and asks you to type `YES`. Run them in a test tenant, or in preview, before production.
 
 | Step | What | How |

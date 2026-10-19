@@ -19,6 +19,16 @@
 
   Format based on Microsoft365DSC's SCPolicyConfig resource; validate in a test tenant first.
 
+.PARAMETER AdminUpn
+  Optional. Pre-fills the Microsoft sign-in window; leave it out to be asked for the account.
+
+.PARAMETER SkipConnect
+  Use the Security & Compliance session that is already open (Connect-IPPSSession) and leave it open.
+  Used by Start-Deployer.ps1 and Invoke-CodeSitDeployment.ps1.
+
+.PARAMETER Force
+  With -Apply, do not ask for YES (the caller has already confirmed).
+
 .EXAMPLE
   .\New-EndpointDlpAppGroup.ps1 -AdminUpn admin@contoso.com
   .\New-EndpointDlpAppGroup.ps1 -AdminUpn admin@contoso.com -Apps @{ Name = 'Claude Desktop'; ExecutableName = 'claude.exe' } -Apply
@@ -27,11 +37,13 @@
   Restore from a backup:  see the Restore-*.ps1 file written next to the backup.
 #>
 param(
-    [Parameter(Mandatory)][string]$AdminUpn,
+    [string]$AdminUpn,
     [string]$GroupName = 'AI desktop apps',
     [string]$Description = 'Desktop AI applications. Referenced by DLP rules to log access to sensitive files.',
     [hashtable[]]$Apps = @(@{ Name = 'Claude Desktop'; ExecutableName = 'claude.exe' }),
     [switch]$Apply,
+    [switch]$Force,
+    [switch]$SkipConnect,
     [string]$BackupDir = (Join-Path $PSScriptRoot '..\exports')
 )
 $ErrorActionPreference = 'Stop'
@@ -47,8 +59,11 @@ function Read-Groups($cfg) {
     }
 }
 
-Import-Module ExchangeOnlineManagement
-Connect-IPPSSession -UserPrincipalName $AdminUpn -ShowBanner:$false
+if (-not $SkipConnect) {
+    Import-Module ExchangeOnlineManagement
+    $conn = @{ ShowBanner = $false }; if ($AdminUpn) { $conn.UserPrincipalName = $AdminUpn }
+    Connect-IPPSSession @conn   # Microsoft sign-in window: username, password, MFA
+}
 try {
     $cfg = Get-PolicyConfig
     $groups = @(Read-Groups $cfg)
@@ -73,7 +88,7 @@ try {
     "  other groups re-sent unchanged: " + @($groups | Where-Object { $_.Name -ne $GroupName }).Count
     if (-not $added) { "`nNothing to change."; return }
     if (-not $Apply) { "`nPREVIEW ONLY. Nothing changed. Re-run with -Apply."; return }
-    if ((Read-Host "`nType YES to write the restricted app groups") -cne 'YES') { "Cancelled. Nothing changed."; return }
+    if (-not $Force -and (Read-Host "`nType YES to write the restricted app groups") -cne 'YES') { "Cancelled. Nothing changed."; return }
 
     # backup + restore script
     New-Item -ItemType Directory -Force $BackupDir | Out-Null
@@ -101,4 +116,4 @@ try {
     if ($lost) { Write-Warning "Groups missing after write: $(($lost | ForEach-Object Name) -join ', '). Restore with the Restore script in $BackupDir." }
     else { "All $($after.Count) groups present. Next: reference '$GroupName' in a DLP rule (see docs\SETUP.md, step 8)." }
 }
-finally { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue }
+finally { if (-not $SkipConnect) { Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue } }
