@@ -1,0 +1,1 @@
+public class Cache { private final Map<String, Double> map = new HashMap<>(); public void put(String k, double v) { this.map.put(k, v); } public double get(String k) { return map.getOrDefault(k, 0.0); } }

@@ -1,0 +1,1 @@
+insert into audit_log (event, created_at) values ('login', now());

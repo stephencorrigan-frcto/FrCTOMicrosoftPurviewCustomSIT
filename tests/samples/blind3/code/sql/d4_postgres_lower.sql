@@ -1,0 +1,1 @@
+create table trades (id serial primary key, symbol text not null, qty integer);

@@ -1,0 +1,1 @@
+Get-Content .\hosts.txt | ForEach-Object { Test-Connection $_ -Count 1 -Quiet }

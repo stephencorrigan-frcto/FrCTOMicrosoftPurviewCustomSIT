@@ -1,0 +1,12 @@
+CLASS PRICER:
+    DEF __INIT__(SELF, RATE):
+        SELF.RATE = RATE
+
+    DEF DISCOUNT(SELF, PRICE, YEARS):
+        FOR Y IN RANGE(YEARS):
+            PRICE = PRICE / (1 + SELF.RATE)
+        RETURN PRICE
+
+    DEF SHOW(SELF):
+        PRINT(SELF.RATE)
+        RETURN NONE

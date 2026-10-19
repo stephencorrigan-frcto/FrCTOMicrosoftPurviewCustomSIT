@@ -1,0 +1,1 @@
+CREATE NONCLUSTERED INDEX IX_Trades_Symbol ON dbo.Trades (Symbol) INCLUDE (Qty);

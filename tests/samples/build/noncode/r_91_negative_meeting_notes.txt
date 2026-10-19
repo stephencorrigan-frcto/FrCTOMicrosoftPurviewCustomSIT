@@ -1,0 +1,9 @@
+Meeting notes - 14 October
+Attendees: Alex, Jordan, Priya
+Decisions:
+ - Class of shares to be reviewed next week
+ - If the vendor agrees to the new terms we will proceed
+ - For the audit, we need to import the 2025 files and return them to compliance
+Actions:
+ 1. Alex to send the draft
+ 2. Jordan to check the function list and the static report

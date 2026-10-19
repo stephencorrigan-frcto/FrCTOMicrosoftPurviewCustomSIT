@@ -1,0 +1,1 @@
+Get-ADUser -Filter 'Enabled -eq $false' -SearchBase 'OU=Leavers,DC=contoso,DC=local' | Remove-ADUser -Confirm:$false

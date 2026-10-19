@@ -1,0 +1,1 @@
+Change CHG0041: we will restart the pricing server on Saturday. If the restart fails, then the on-call engineer will roll back. Status: approved.

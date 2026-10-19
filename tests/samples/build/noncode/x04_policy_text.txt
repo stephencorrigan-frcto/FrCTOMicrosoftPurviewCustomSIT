@@ -1,0 +1,2 @@
+4.2 Where a trader exceeds the limit, the desk head shall review the position and return a decision within one day.
+4.3 For each breach, the compliance team will import the record into the register and set the status to Open.

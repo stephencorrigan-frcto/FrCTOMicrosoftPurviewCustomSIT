@@ -1,0 +1,6 @@
+{
+  "symbol": "AAPL",
+  "qty": 100,
+  "price": 189.5,
+  "tags": ["equity", "us"]
+}

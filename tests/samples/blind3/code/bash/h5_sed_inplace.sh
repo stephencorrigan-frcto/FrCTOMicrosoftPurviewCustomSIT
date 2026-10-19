@@ -1,0 +1,1 @@
+sed -i 's/^mode=.*/mode=prod/' /etc/pricing.conf && systemctl reload pricing

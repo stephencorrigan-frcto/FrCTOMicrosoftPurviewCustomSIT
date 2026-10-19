@@ -1,0 +1,1 @@
+Procurement plan: select vendor from shortlist where cost < budget, then order by priority, and sum (total spend) at quarter end.

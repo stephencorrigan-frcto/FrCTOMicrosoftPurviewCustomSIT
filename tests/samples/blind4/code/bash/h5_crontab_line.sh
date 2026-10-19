@@ -1,0 +1,1 @@
+crontab -l | { cat; echo "0 2 * * * /opt/scripts/backup.sh"; } | crontab -

@@ -1,0 +1,1 @@
+curl -s https://api.example.com/prices | jq -r '.items[] | .symbol' | head -n 5

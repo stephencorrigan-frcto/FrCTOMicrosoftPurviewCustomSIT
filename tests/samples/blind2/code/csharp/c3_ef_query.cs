@@ -1,0 +1,1 @@
+var open = await _db.Orders.Where(o => o.Status == OrderStatus.Open).ToListAsync(ct);

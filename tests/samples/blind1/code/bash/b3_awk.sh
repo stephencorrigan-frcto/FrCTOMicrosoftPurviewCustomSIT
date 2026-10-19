@@ -1,0 +1,1 @@
+awk -F, '$3 > 1000 { print $1 }' trades.csv | sort -u > big_trades.txt

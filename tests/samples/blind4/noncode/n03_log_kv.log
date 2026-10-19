@@ -1,0 +1,2 @@
+2026-10-14 10:02:11 user=jdoe; action=login; result=success; ip=10.0.92.175;
+2026-10-14 10:05:43 user=jdoe; action=export; result=denied;

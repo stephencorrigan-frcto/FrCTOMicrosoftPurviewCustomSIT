@@ -1,0 +1,1 @@
+gci C:\Logs -Recurse | ? { $_.Length -gt 10MB } | % { $_.FullName }

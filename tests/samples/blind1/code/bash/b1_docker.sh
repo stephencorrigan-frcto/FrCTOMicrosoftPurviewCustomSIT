@@ -1,0 +1,1 @@
+docker build -t pricing:latest . && docker run -d -p 8080:8080 --name pricing pricing:latest

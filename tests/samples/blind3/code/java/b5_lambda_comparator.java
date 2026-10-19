@@ -1,0 +1,1 @@
+trades.sort(Comparator.comparing(Trade::getPrice).reversed());

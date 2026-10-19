@@ -1,0 +1,1 @@
+int whole = static_cast<int>(price);

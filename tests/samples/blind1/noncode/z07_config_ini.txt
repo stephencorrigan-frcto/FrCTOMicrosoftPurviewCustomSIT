@@ -1,0 +1,4 @@
+[pricing]
+mode = production
+port = 8080
+timeout = 30

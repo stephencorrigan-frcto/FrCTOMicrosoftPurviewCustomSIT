@@ -1,0 +1,1 @@
+We use C#, .NET, Java and Go, deploy with Docker and Kubernetes, and script in PowerShell and Bash. You will write clean, tested code.

@@ -1,0 +1,1 @@
+static decimal Notional(decimal price, int qty) { return price * qty; }

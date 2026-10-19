@@ -1,0 +1,1 @@
+const merged = { ...defaults, ...overrides, updatedAt: Date.now() };

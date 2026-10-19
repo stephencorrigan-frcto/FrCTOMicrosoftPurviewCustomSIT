@@ -1,0 +1,1 @@
+Status: green. Import of the September data is complete. Delete requests from clients: 3. Insert the new figures into slide 4.

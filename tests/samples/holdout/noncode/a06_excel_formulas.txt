@@ -1,0 +1,1 @@
+Column F uses =SUM(B2:B40) and column G uses =AVERAGE(C2:C40). Count (rows) should be 39.

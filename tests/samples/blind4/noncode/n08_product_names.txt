@@ -1,0 +1,1 @@
+We trialled PowerBI, iPhone apps and JavaScript-free dashboards; ServiceNow integration is next.

@@ -1,0 +1,1 @@
+sort.Slice(trades, func(i, j int) bool { return trades[i].Qty > trades[j].Qty })

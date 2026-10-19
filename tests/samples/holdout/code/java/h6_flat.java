@@ -1,0 +1,1 @@
+private static final Logger LOG = LoggerFactory.getLogger(App.class); public void run() { LOG.info("start"); }

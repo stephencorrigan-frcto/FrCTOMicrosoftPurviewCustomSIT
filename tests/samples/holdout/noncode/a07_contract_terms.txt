@@ -1,0 +1,1 @@
+The Package includes the base Class licence. Where the Customer requests an update, the Supplier will set the date and return confirmation.

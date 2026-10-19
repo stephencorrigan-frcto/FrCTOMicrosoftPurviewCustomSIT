@@ -1,0 +1,1 @@
+SELECT Symbol, COUNT(*) AS Trades FROM dbo.Trades GROUP BY Symbol HAVING COUNT(*) > 100;

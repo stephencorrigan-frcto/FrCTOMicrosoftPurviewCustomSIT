@@ -1,0 +1,1 @@
+public class Loader { private string _conn; public Loader(string conn) { _conn = conn; } public int Count() { try { return Query().Count; } catch (Exception ex) { Console.WriteLine(ex.Message); return 0; } } }

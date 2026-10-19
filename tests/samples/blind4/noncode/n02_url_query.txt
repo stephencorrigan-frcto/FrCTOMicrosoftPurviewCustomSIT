@@ -1,0 +1,1 @@
+Dashboard link: https://reports.example.com/view?desk=equities&period=q3&format=pdf

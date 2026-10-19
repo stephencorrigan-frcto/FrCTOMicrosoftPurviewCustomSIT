@@ -1,0 +1,1 @@
+if (order?.Lines is null || order.Lines.Count == 0) throw new ArgumentException(nameof(order));

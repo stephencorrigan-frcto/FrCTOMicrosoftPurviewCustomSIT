@@ -1,0 +1,1 @@
+Definitions: let rate := annual rate / 12 and n := number of payments. The function of each variable is described in Appendix B.

@@ -1,0 +1,1 @@
+Requirements: experience with C#, Java, SQL and PowerShell. Familiarity with Go and Bash is a plus. You will build tools for the trading desk.

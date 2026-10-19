@@ -1,0 +1,6 @@
+Invoice 20431
+Item: Consulting services, October
+Quantity: 12 hours
+Rate: $180.00
+Total: $2,160.00
+Please pay within 30 days. If you have any questions, call us.

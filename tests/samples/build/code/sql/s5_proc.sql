@@ -1,0 +1,6 @@
+CREATE PROCEDURE dbo.GetDeskPnl @Desk NVARCHAR(20)
+AS
+BEGIN
+    SELECT Desk, SUM(Pnl) AS Pnl FROM dbo.DailyPnl WHERE Desk = @Desk GROUP BY Desk;
+END
+GO

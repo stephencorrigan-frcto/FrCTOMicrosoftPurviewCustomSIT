@@ -1,0 +1,1 @@
+Let f(x) = 2x + 1. For x in 1..5, compute f(x). If f(x) > 7 then mark it. Return the total.

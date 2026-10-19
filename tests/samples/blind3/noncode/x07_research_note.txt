@@ -1,0 +1,1 @@
+Model: return = alpha + beta * market + error; beta estimated at 1.12 (t = 4.3). Var(error) fell after the regime change.

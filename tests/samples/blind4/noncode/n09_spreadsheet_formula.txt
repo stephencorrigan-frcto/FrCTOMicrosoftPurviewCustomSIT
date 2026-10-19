@@ -1,0 +1,1 @@
+=IF(B2>100,"Large","Normal") and =VLOOKUP(A2,Rates!A:B,2,FALSE) are used in the pricing sheet.

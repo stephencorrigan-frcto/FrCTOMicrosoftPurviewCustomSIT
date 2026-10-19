@@ -1,0 +1,1 @@
+Employees must declare any conflicts. Where a conflict exists, the manager will update the register and set a review date.

@@ -1,0 +1,1 @@
+update positions set qty = 0 where symbol = 'XYZ';

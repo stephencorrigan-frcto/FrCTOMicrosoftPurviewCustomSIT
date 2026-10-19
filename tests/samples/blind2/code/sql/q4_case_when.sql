@@ -1,0 +1,1 @@
+SELECT TradeId, CASE WHEN Qty > 1000 THEN 'Large' ELSE 'Normal' END AS SizeBand FROM dbo.Trades;

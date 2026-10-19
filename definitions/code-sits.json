@@ -1,0 +1,330 @@
+{
+    "schemaVersion":  "1.0",
+    "notes":  "Regexes follow the Purview validator rules: no .* / .+ / .{n,m}, no negated classes with a repeat, no repeated groups. High (85) = primary + 2 different supporting elements within the proximity window; Medium (75) = primary + 1.",
+    "packs":  {
+                  "stable":  {
+                                 "id":  "4bf7527d-3137-4921-9218-a181fcc348dc",
+                                 "name":  "Code Detection SITs",
+                                 "publisherId":  "7c763d26-c42f-4133-9c70-c4a98a86543a",
+                                 "publisherName":  "Custom SIT Library",
+                                 "version":  "1.0.0.0"
+                             },
+                  "experimental":  {
+                                       "id":  "351ce8d5-904f-4421-8cc7-cf309eefc884",
+                                       "name":  "Code Detection SITs (Experimental)",
+                                       "publisherId":  "f7c4faec-c7a0-4096-ad66-4cc09fcbc3ab",
+                                       "publisherName":  "Custom SIT Library",
+                                       "version":  "1.0.0.0"
+                                   }
+              },
+    "sits":  [
+                 {
+                     "key":  "sourcecode",
+                     "name":  "Source Code - Multi-language",
+                     "id":  "f9fb959f-2139-44cc-a406-3d1e39e735b0",
+                     "maturity":  "stable",
+                     "description":  "Function, class and declaration patterns across C-family languages, Python, JavaScript, Go and PowerShell, with control-flow, import, declaration and call evidence.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\b(?:function\\s+[\\w-]+\\s*[\\(\\{]|def\\s+\\w+\\s*\\(|class\\s+\\w+\\s*[\\{:\\(]|class\\s+\\w+\\s+(?:extends|implements)\\s+\\w+|(?:public|private|protected|internal|static)\\s+[\\w<>,.?]+\\s+\\w+\\s*\\(|(?:void|int|long|string|bool|double|float|decimal)\\s+\\w+\\s*\\(|namespace\\s+\\w+|package\\s+[\\w.]+\\s*(?:;|\\r?\\n)|fn\\s+\\w+\\s*\\(|func\\s+\\w+\\s*\\()|#include\\s*[<\"]|using\\s+System|import\\s+java",
+                     "supporting":  {
+                                        "Control":  "\\b(?:if|while|for|foreach|switch|catch)\\s*\\(|\\b(?:else|try|finally)\\s*[\\{:]|\\belif\\s+\\w+|\\bexcept\\s+\\w+|\\breturn\\s+[\\w\\(\\\"'\\[\\{!-]|\\bfor\\s+\\w+\\s+in\\s+\\w+|\\bfor\\s+\\w+\\s*,\\s*\\w+\\s+in\\s+\\w+|\\bif\\s+not\\s+\\w+|\\bif\\s+\\w+\\s*[=!<>]=",
+                                        "Import":  "(?:^|\\n)\\s*(?:import\\s+[\\w.]+|from\\s+[\\w.]+\\s+import\\s+[\\w.]+|using\\s+[\\w.]+\\s*;|#include\\s*[<\"]|const\\s+\\w+\\s*=\\s*require\\(|require\\s*\\(|package\\s+[\\w.]+\\s*;|use\\s+[\\w:]+\\s*;)",
+                                        "Decl":  "\\b(?:var|let|const|int|long|string|String|bool|boolean|double|float|decimal|char)\\s+\\w+\\s*[=;]",
+                                        "Calls":  "\\b\\w+\\.\\w+\\(|\\bprint\\(|Console\\.Write|System\\.out\\.|\\+=|-=|=>|!=|=="
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  [
+                                         "*"
+                                     ]
+                 },
+                 {
+                     "key":  "python",
+                     "name":  "Python Source Code",
+                     "id":  "16e8ad94-a843-4ca6-b2e7-03527b5a9de6",
+                     "maturity":  "stable",
+                     "description":  "Python def/class/import lines and statement-style code (assignments from calls, print, try/except), with keyword, structure and call evidence.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "(?:^|\\n)\\s*def\\s+\\w+\\s*\\(|(?:^|\\n)\\s*class\\s+\\w+\\s*[\\(:]|(?:^|\\n)\\s*(?:from\\s+[\\w.]+\\s+)?import\\s+[\\w.]+|(?:^|\\n)\\s*if\\s+__name__\\s*==|(?:^|\\n)\\s*\\w+\\s*=\\s*\\w+\\.\\w+\\(|(?:^|\\n)\\s*\\w+\\[[\"']\\w+[\"']\\]\\s*=|(?:^|\\n)\\s*print\\(|(?:^|\\n)\\s*(?:try|else|finally)\\s*:|(?:^|\\n)\\s*except\\s+\\w+|(?:^|\\n)\\s*(?:raise|assert)\\s+\\w+|(?:^|\\n)\\s*with\\s+\\w+\\(|(?:^|\\n)\\s*(?:for|while)\\s+\\w+\\s+in\\s+\\w+",
+                     "supporting":  {
+                                        "Keywords":  "\\b(?:self|cls|elif|except|lambda|yield|None|True|False|await|__init__|__name__|__main__)\\b|async def|@staticmethod|@classmethod|@property|@dataclass|print\\(|\"\"\"|\\bf[\"']|\\b(?:pass|raise|assert|finally)\\b",
+                                        "Structure":  "(?:^|\\n)\\s*(?:for\\s+\\w+\\s+in\\s+\\w+|for\\s+\\w+\\s*,\\s*\\w+\\s+in\\s+\\w+|if\\s+not\\s+\\w+|if\\s+\\w+\\s*[=!<>]=|if\\s+\\w+\\s+(?:in|is)\\s+\\w+|elif\\s+\\w+|while\\s+\\w+|else\\s*:|try\\s*:|except\\s+\\w+|with\\s+\\w+\\s+as\\s+\\w+|return\\s+\\w+|return\\s*\\n)",
+                                        "Calls":  "\\b(?:len|range|isinstance|enumerate|sorted|sum|open|super)\\(|\\.(?:append|items|values|keys|join|format|split|get)\\(|\\bself\\.\\w+|\\.(?:head|groupby|read_csv|apply|merge|mean|astype|drop|sort_values)\\(|\\bnp\\.\\w+|\\bpd\\.\\w+"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  [
+                                         "python"
+                                     ]
+                 },
+                 {
+                     "key":  "sql",
+                     "name":  "SQL Source Code",
+                     "id":  "73556c53-c199-4e6d-9698-192dae7b1ca9",
+                     "maturity":  "stable",
+                     "description":  "SQL statements with real structure (column lists, CREATE TABLE name (, MERGE ... USING, WITH ... AS (SELECT), DECLARE @) plus clause, function and type evidence.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\b(?:SELECT|select)\\s+(?:\\*|DISTINCT\\b|distinct\\b|TOP\\s+\\d+|top\\s+\\d+|[\\w.]+\\s*,|\\w+\\.\\w+|\\w+\\(|[\\w.]+\\s+(?:AS|as)\\s+\\w+)[\\w\\*,\\s.()'<>=+-]*\\s+(?:FROM|from)\\s+[\\w.\\[\\]]+|\\b(?:INSERT|insert)\\s+(?:INTO|into)\\s+[\\w.\\[\\]]+\\s*(?:\\(|VALUES|values|SELECT|select)|\\b(?:UPDATE|update)\\s+[\\w.\\[\\]]+\\s+(?:SET|set)\\s+[\\w.]+\\s*=\\s*[\\w@']|\\b(?:DELETE|delete)\\s+(?:FROM|from)\\s+[\\w.\\[\\]]+\\s+(?:WHERE|where)\\s+[\\w.]+\\s*(?:=|<|>|IS|is|IN|in)|\\b(?:CREATE|create)\\s+(?:TABLE|table)\\s+[\\w.\\[\\]]+\\s*\\(|\\b(?:CREATE|create)\\s+(?:VIEW|view)\\s+[\\w.\\[\\]]+\\s+(?:AS|as)\\b|\\b(?:CREATE|create)\\s+(?:PROCEDURE|PROC|FUNCTION|procedure|proc|function)\\s+[\\w.\\[\\]]+\\s*(?:@|\\(|\\r?\\n\\s*(?:AS|as)\\b)|\\b(?:CREATE|create)\\s+(?:UNIQUE\\s+)?(?:CLUSTERED\\s+|NONCLUSTERED\\s+)?(?:INDEX|index)\\s+\\w+\\s+(?:ON|on)\\s|\\b(?:ALTER|alter)\\s+(?:TABLE|table)\\s+[\\w.\\[\\]]+\\s+(?:ADD|DROP|ALTER|add|drop|alter)\\s|\\bMERGE\\s+(?:INTO\\s+)?[\\w.\\[\\]]+\\s+(?:AS\\s+)?\\w+\\s+USING\\b|\\bWITH\\s+\\w+\\s+AS\\s*\\(\\s*\\r?\\n?\\s*SELECT\\b|\\bDECLARE\\s+@\\w+",
+                     "supporting":  {
+                                        "GStmtEnd":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)",
+                                        "SqlClauses":  "\\b(?:WHERE|where)\\s+[\\w.]+\\s*(?:=|<|>|!=|<>)\\s*[\\w'@]|\\b(?:WHERE|where)\\s+[\\w.]+\\s+(?:IS|IN|LIKE|BETWEEN|is|in|like|between)\\s|\\b(?:JOIN|join)\\s+[\\w.]+\\s+\\w*\\s*(?:ON|on)\\s+[\\w.]+\\s*=|\\b(?:GROUP|ORDER|group|order)\\s+(?:BY|by)\\s+[\\w.]+\\s*(?:DESC|ASC|desc|asc|;|\\r?\\n)|\\bUSING\\s+[\\w.]+|\\bWHEN\\s+(?:NOT\\s+)?MATCHED\\b|\\bOVER\\s*\\(\\s*PARTITION\\s+BY\\b|\\bON\\s+[\\w.]+\\s*\\(",
+                                        "SqlFuncs":  "\\b(?:COUNT|SUM|AVG|MIN|MAX|COALESCE|ISNULL|CAST|CONVERT|GETDATE|DATEADD|ROW_NUMBER|count|sum|avg|min|max|coalesce)\\([\\w*.]",
+                                        "SqlMisc":  "\\b(?:AS|as)\\s+\\w+\\s*(?:,|\\r?\\n|FROM|from)|\\bdbo\\.\\w+|\\b(?:VARCHAR|NVARCHAR|INT|DATETIME2?|DATE|DECIMAL|BIGINT|PRIMARY\\s+KEY|NOT\\s+NULL|NULL)\\b|\\bBEGIN\\b|\\bGO\\b|@\\w+\\s+(?:NVARCHAR|VARCHAR|INT|DATE)|\\bVALUES\\s*\\(|\\bADD\\s+\\w+\\s+N?VARCHAR|=\\s*\\d+\\s*;|\\bINCLUDE\\s*\\("
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "sql"
+                 },
+                 {
+                     "key":  "java",
+                     "name":  "Java Source Code",
+                     "id":  "d7921554-c6b5-4b18-a869-61f56c7aeff2",
+                     "maturity":  "stable",
+                     "description":  "Java markers (package, java imports, annotations, streams, typed declarations) plus generic code structure.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\bpackage\\s+[\\w.]+\\s*;|\\bimport\\s+(?:static\\s+)?javax?\\.[\\w.]+|\\b(?:public|private|protected)\\s+(?:\\w+\\s+)?(?:class|record|interface|enum|void|String|int|double|boolean|long|static)\\b|@(?:Override|Test|Autowired|RestController|Controller|GetMapping|PostMapping|RequestMapping|PathVariable|Service|Component|Entity)\\b|\\.stream\\(\\)|\\bSystem\\.out\\.|\\b(?:ExecutorService|Optional|ArrayList|HashMap|List|Map|Set)<\\w+|\\bnew\\s+(?:ArrayList|HashMap|HashSet|StringBuilder|BufferedReader|FileReader|Thread|IllegalStateException|IllegalArgumentException|RuntimeException)\\b|\\bcatch\\s*\\(\\s*\\w+(?:Exception|Error)\\s+\\w+\\s*\\)|\\bfinal\\s+\\w+\\s+\\w+\\s*=|\\w+::\\w+|\\bString\\s+\\w+\\s*[=;,)]|\\bExecutors\\.\\w+|\\bCollectors\\.\\w+|\\b[A-Z]\\w+(?:<[\\w,\\s<>]+>)?\\s+[a-z]\\w*\\s*=\\s*(?:new\\b|[\\w.]+\\(|\\w+\\.\\w+)",
+                     "supporting":  {
+                                        "GStmtEnd":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)",
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "GOps":  "==|!=|&&|\\|\\||=>|->|::|\\+=|-=|\\+\\+|<<",
+                                        "GCalls":  "\\b\\w+\\.\\w+\\(|\\b[a-z_]\\w*\\([\\w\"'$@.,\\s]*\\)\\s*[;)]",
+                                        "GKeywords":  "\\b(?:if|for|while|switch|catch|foreach)\\s*\\(|\\breturn\\s+[\\w.()\\[\\]\"' +*/-]+;|\\bnull\\s*[;),]|[=!]=\\s*null\\b|\\bnew\\s+\\w+\\s*[\\(<{\\[]|\\bthrow\\s+(?:new\\s+)?\\w+",
+                                        "JavaExtra":  "->|::|\\bthrows\\b|\\bfinally\\s*\\{|\\bthis\\.\\w+|\\bString\\b|\\bassert\\w*\\("
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "java"
+                 },
+                 {
+                     "key":  "javascript",
+                     "name":  "JavaScript and TypeScript Source Code",
+                     "id":  "75fd699b-187c-447a-bd0c-a03c9f60a082",
+                     "maturity":  "stable",
+                     "description":  "JavaScript/TypeScript markers (const/let, arrow functions, require/import/export, DOM, Node, type annotations) plus generic code structure.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\bfunction\\s+\\w+\\s*[<(]|\\bfunction\\s*\\([\\w\\s,]*\\)\\s*\\{|\\b(?:const|let)\\s+(?:\\w+|\\{[\\w\\s,:]+\\}|\\[[\\w\\s,]+\\])\\s*=|\\bvar\\s+\\w+\\s*=\\s*(?:require|function|\\[|\\{|new\\b)|\\bimport\\s+[\\w{}\\s,*]+\\s+from\\s+[\"']|\\bexport\\s+(?:default|function|class|const|interface|type|async)\\b|\\bmodule\\.exports\\b|\\brequire\\([\"']|\\bconsole\\.\\w+\\(|\\bdocument\\.\\w+|\\bwindow\\.\\w+|\\$\\(\\s*(?:document|window|[\"'#.])|\\b(?:app|router)\\.(?:use|get|post|put|delete|listen)\\(|\\bconstructor\\s*\\(|\\bthis\\.\\w+\\s*=|\\bawait\\s+[\\w.]+\\(|\\bdata\\(\\)\\s*\\{|\\bmounted\\(\\)|\\w\\s*:\\s*(?:string|number|boolean|void|any)\\s*[;,)=|\\]]|\\binterface\\s+\\w+\\s*\\{|\\btype\\s+\\w+\\s*=|`\\$\\{|\\bfs\\.\\w+\\(|\\bclass\\s+\\w+\\s*(?:extends\\s+\\w+\\s*)?\\{",
+                     "supporting":  {
+                                        "GStmtEnd":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)",
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "GOps":  "==|!=|&&|\\|\\||=>|->|::|\\+=|-=|\\+\\+|<<",
+                                        "GCalls":  "\\b\\w+\\.\\w+\\(|\\b[a-z_]\\w*\\([\\w\"'$@.,\\s]*\\)\\s*[;)]",
+                                        "GKeywords":  "\\b(?:if|for|while|switch|catch|foreach)\\s*\\(|\\breturn\\s+[\\w.()\\[\\]\"' +*/-]+;|\\bnull\\s*[;),]|[=!]=\\s*null\\b|\\bnew\\s+\\w+\\s*[\\(<{\\[]|\\bthrow\\s+(?:new\\s+)?\\w+",
+                                        "JsExtra":  "===|!==|=>|\\bundefined\\b|`\\$\\{|\\bthis\\.\\w+|\\.then\\(|\\.map\\(|\\bnew\\s+(?:Map|Set|Promise|Date)\\(|\\bconst\\b|\\blet\\s+\\w+"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "javascript"
+                 },
+                 {
+                     "key":  "csharp",
+                     "name":  "CSharp Source Code",
+                     "id":  "913fa837-8290-4727-92df-bed38fce64b2",
+                     "maturity":  "experimental",
+                     "description":  "C# markers (namespace, using System, access modifiers, var, attributes, LINQ) plus generic code structure. Weak on very short snippets.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\bnamespace\\s+[\\w.]+|\\busing\\s+(?:System|Microsoft)[\\w.]*\\s*;|\\busing\\s*\\(\\s*var\\b|\\b(?:public|private|protected|internal)\\s+(?:\\w+\\s+)?(?:class|record|struct|interface|enum|void|string|int|bool|decimal|Task|async|override|static)\\b|\\bvar\\s+\\w+\\s*=\\s*[\\w(\\[]|\\{\\s*get;|\\binit;\\s*\\}|\\bnameof\\(|\\?\\.\\w+|\\bis\\s+(?:not\\s+)?null\\b|\\bConsole\\.\\w+|\\w+<\\w+(?:,\\s*\\w+)?>\\(|\\bforeach\\s*\\(\\s*var\\b|\\[(?:Fact|Theory|Test|TestMethod|HttpGet|HttpPost|Route|ApiController|Authorize)\\b|\\bstring\\.Empty\\b|\\bfrom\\s+\\w+\\s+in\\s+\\w+|\\b\\w+\\s+switch\\s*\\{|\\bobject\\s+sender\\b|\\bArgument(?:Null)?Exception\\b|\\bbuilder\\.Services\\b|\\bapp\\.Map\\w+\\(",
+                     "supporting":  {
+                                        "GStmtEnd":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)",
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "GOps":  "==|!=|&&|\\|\\||=>|->|::|\\+=|-=|\\+\\+|<<",
+                                        "GCalls":  "\\b\\w+\\.\\w+\\(|\\b[a-z_]\\w*\\([\\w\"'$@.,\\s]*\\)\\s*[;)]",
+                                        "GKeywords":  "\\b(?:if|for|while|switch|catch|foreach)\\s*\\(|\\breturn\\s+[\\w.()\\[\\]\"' +*/-]+;|\\bnull\\s*[;),]|[=!]=\\s*null\\b|\\bnew\\s+\\w+\\s*[\\(<{\\[]|\\bthrow\\s+(?:new\\s+)?\\w+",
+                                        "CsExtra":  "\\$\"|\\bget;|\\binit;|\\bset;|\\bvar\\s+\\w+|\\bTask<|\\basync\\s+Task|\\bdecimal\\b|\\bstring\\s+\\w+"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "csharp"
+                 },
+                 {
+                     "key":  "powershell",
+                     "name":  "PowerShell Script",
+                     "id":  "64de5d2f-8ad0-4d28-9064-2b46099a9899",
+                     "maturity":  "experimental",
+                     "description":  "PowerShell markers (Verb-Noun cmdlets, param, CmdletBinding, pipelines, typed variables). Weak on short snippets without cmdlets.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\bfunction\\s+[A-Z][a-z]+-[A-Za-z]+|\\b(?:Get|Set|New|Remove|Add|Invoke|Start|Stop|Restart|Import|Export|Connect|Disconnect|Write|Read|Select|Where|ForEach|Sort|Group|Measure|Test|Register|Unregister|Enable|Disable|Update|Clear|Copy|Move|Rename|Resolve|Search|Send|Wait|Out|Format|ConvertTo|ConvertFrom)-[A-Z][A-Za-z]+|\\bparam\\s*\\(|\\[CmdletBinding\\(|\\|\\s*[%?]\\s*\\{\\s*\\$_|\\$\\w+\\s*=\\s*@\\{|\\[(?:string|int|bool|datetime|switch|hashtable|array)\\]\\$\\w+|\\$this\\.\\w+|\\$[A-Za-z_]\\w*(?:\\+\\+|\\s*\\+=|\\s*-=)|\\bswitch\\s+-(?:Regex|Wildcard|Exact|File)\\b",
+                     "supporting":  {
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "GCalls":  "\\b\\w+\\.\\w+\\(|\\b[a-z_]\\w*\\([\\w\"'$@.,\\s]*\\)\\s*[;)]",
+                                        "PsVars":  "\\$\\w+\\s*=|\\$_\\.\\w+|\\$PSScriptRoot|\\$PSCmdlet|\\$env:\\w+|\\$\\(|\\$true\\b|\\$false\\b|\\$null\\b|@\\w+\\b",
+                                        "PsPipe":  "\\|\\s*(?:Where-Object|Select-Object|ForEach-Object|Sort-Object|Format-Table|Format-List|Out-File|Out-Null|Export-Csv|Group-Object|Measure-Object|Set-\\w+)\\b|\\|\\s*%\\s*\\{|\\|\\s*\\?\\s*\\{",
+                                        "PsSyntax":  "\\b(?:foreach|if|elseif|while|switch)\\s*\\(|\\s-(?:eq|ne|gt|lt|ge|le|like|match|contains|notin|in|split|join|not)\\s|\\btry\\s*\\{|\\bcatch\\s*\\{|\\bthrow\\s+\"|\\[(?:string|int|switch|bool|Parameter)\\b|\\s-(?:Recurse|Force|ErrorAction|UseBasicParsing|ResultSize|Path|Name|Value|All)\\b"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "powershell"
+                 },
+                 {
+                     "key":  "cpp",
+                     "name":  "C and C++ Source Code",
+                     "id":  "930b95e0-79b6-4a5d-8cdc-7636e19bcf8f",
+                     "maturity":  "experimental",
+                     "description":  "C/C++ markers (#include, std::, pointers, C library calls, templates) plus generic code structure. Weak on short fragments.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "#include\\s*[<\"][\\w./]+[>\"]|#(?:ifndef|ifdef|pragma|define)\\s+\\w+|\\bint\\s+main\\s*\\(|\\b(?:class|struct)\\s+\\w+\\s*\\{|\\btemplate\\s*<|\\bnamespace\\s+\\w+\\s*\\{|\\btypedef\\s+(?:struct|enum|unsigned|int|char)\\b|\\b(?:void|int|char|double|float|bool|size_t|auto|T)\\s+\\w+\\s*\\([\\w\\s,*&\\[\\]]*\\)\\s*(?:const\\s*)?\\{|\\bstd::\\w+|\\b(?:FILE|char|int|void|size_t|uint\\d+_t)\\s*\\*\\s*\\w+\\s*=|\\bwhile\\s*\\(\\s*\\*\\w+|\\b(?:strncpy|strcpy|strlen|memcpy|memset|fopen|fclose|fgets|fprintf|printf|perror|malloc|calloc|free)\\(|\\bexplicit\\s+\\w+\\s*\\(|\\bconst\\s+auto\\s*&|\\bunsigned\\s+(?:int|char|long)\\b",
+                     "supporting":  {
+                                        "GStmtEnd":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)",
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "CSyntax":  "\\bstd::\\w+|\\bprintf\\(|\\bfprintf\\(|\\bcout\\s*<<|\\bcin\\s*>>|\\bmalloc\\(|\\bfree\\(|\\bsizeof\\(|->\\w+|\\bnullptr\\b|\\bNULL\\b|\\.push_back\\(|<<\\s*std::endl|'\\\\0'|\\bmake_unique<",
+                                        "CTypes":  "\\b(?:int|char|float|double|long|unsigned|size_t|bool|auto|const)\\s+\\**\\w+\\s*[=;\\[,)]|\\b(?:const\\s+)?\\w+&\\s+\\w+|\\btypename\\s+\\w+|\\bdouble\\s+\\w+\\s*,\\s*\\w+\\s*;|\\b\\w+\\s*\\(\\s*\\)\\s*const\\b",
+                                        "CControl":  "\\b(?:if|while|for|switch)\\s*\\(|\\breturn\\s+[\\w(-]|#define\\s+\\w+|#endif\\b|\\bpublic\\s*:|\\bprivate\\s*:|\\b\\w+\\+\\+\\s*;|\\*\\w+\\s*(?:==|!=|=)\\s|\\[\\]\\s*\\("
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "cpp"
+                 },
+                 {
+                     "key":  "go",
+                     "name":  "Go Source Code",
+                     "id":  "1e04cf49-667a-475a-a12e-89f02367f8a5",
+                     "maturity":  "experimental",
+                     "description":  "Go markers (package, func, :=, struct/interface types, json tags, channels) plus generic code structure.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "\\bpackage\\s+\\w+\\s*\\r?\\n|\\bfunc\\s+\\(\\w+\\s+\\*?\\w+\\)\\s+\\w+\\s*\\(|\\bfunc\\s+\\w+\\s*\\(|\\bfunc\\s*\\(\\s*\\)|\\bimport\\s+\\(|\\bimport\\s+\"[\\w./]+\"|\\b\\w+(?:\\s*,\\s*\\w+)?\\s*:=\\s*(?:[\\w.]+[\\({]|&|\\[\\]|<-|make\\(|map\\[|range\\b|\\d|\")|\\btype\\s+\\w+\\s+(?:struct|interface)\\s*\\{|`json:\"\\w+|\\bselect\\s*\\{|\\bvar\\s+\\w+\\s+\\[\\]\\w+|\\bdefer\\s+\\w+(?:\\.\\w+)?\\(|\\bcontext\\.\\w+\\(|\\bmap\\[\\w+\\]\\w+|\\bfunc\\s*\\([\\w\\s,*\\[\\]]*\\)\\s*[\\w*\\[\\]]*\\s*\\{|\\b(?:const|var)\\s+\\(\\s*\\r?\\n",
+                     "supporting":  {
+                                        "GBraces":  "\\)\\s*\\{|\\{[ \\t]*\\r?\\n|(?:^|\\n)[ \\t]*\\}",
+                                        "GCalls":  "\\b\\w+\\.\\w+\\(|\\b[a-z_]\\w*\\([\\w\"'$@.,\\s]*\\)\\s*[;)]",
+                                        "GoSyntax":  "(?:^|\\n)\\s*[A-Z]\\w+\\s*=\\s*[\\d\"]|\\bgo\\s+func\\b|\\bdefer\\s+\\w+|\\bchan\\s+\\w+|\\bmake\\(|\\bpanic\\(|\\bnil\\b|<-|\\bappend\\(|\\bcase\\s+[\\w<]",
+                                        "GoApi":  "\\bfmt\\.(?:Print|Println|Printf|Sprintf|Errorf|Fprintln)\\(|\\berr\\s*!=\\s*nil|\\b(?:http|os|strings|strconv|json|time|log|testing|context)\\.[A-Z]\\w+|\\bt\\.(?:Errorf|Fatalf|Run)\\(",
+                                        "GoTypes":  "\\b\\w+\\s+(?:string|int|int64|float64|bool|error)\\b|\\(\\s*\\w+\\s+(?:string|int|float64)\\s*\\)|\\[\\]\\w+|\\brange\\s+\\w+|\\*\\w+\\.\\w+\\b|\\(float64,\\s*error\\)|\\b\\w+\\[\\w+\\]\\+\\+"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "go"
+                 },
+                 {
+                     "key":  "bash",
+                     "name":  "Bash and Shell Script",
+                     "id":  "11ef36ca-839b-4cf0-b5fb-d2cd44ad0309",
+                     "maturity":  "experimental",
+                     "description":  "Shell markers (shebang, [ ] tests, for/while ... do, case ... in, pipes to text tools, sudo, docker, ssh). Weak on one-liners.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "#!/(?:usr/)?bin/(?:env\\s+)?(?:bash|sh|zsh)|\\b(?:if|while)\\s+\\[\\[?\\s|\\bfor\\s+\\w+\\s+in\\s+[\\w$\"{}/*.-]+\\s*;\\s*do\\b|\\bfor\\s+\\w+\\s+in\\s+[\\w\\s*.-]+;\\s*do\\b|\\bfunction\\s+\\w+\\s*\\{|\\b\\w+\\s*\\(\\)\\s*\\{|\\bcase\\s+\"?\\$\\w+\"?\\s+in\\b|\\|\\s*xargs\\b|\\bfind\\s+[.\\w/]+\\s+-name\\s|<<\\s*-?['\"]?EOF\\b|\\bsudo\\s+[\\w-]+|\\b(?:apt-get|apt|yum|dnf|brew)\\s+(?:install|update)\\b|\\bwhile\\s+getopts\\b|\\btrap\\s+\\w+|\\bgit\\s+(?:log|clone|pull|push|commit|diff)\\s+-|\\|\\s*(?:sort|uniq|head|tail|grep|awk|sed|wc)\\s+-|\\bdocker\\s+(?:build|run|compose|push|pull|exec|ps)\\b|\\bssh\\s+(?:-\\w+\\s+)?[\"$]|\\bssh\\s+\\w+@|\\bawk\\s+(?:-F|')|\\bkubectl\\s+\\w+|;\\s*do\\b|\\bdone\\s*<|\\$\\{\\w+\\[@\\]\\}|\\bread\\s+-r\\s+\\w+",
+                     "supporting":  {
+                                        "ShVars":  "\\$\\{\\w+|\\$[A-Za-z_]\\w*|\\$\\(|\"\\$@\"|\\$\\?|\\$\\d|\\bexport\\s+\\w+=|\\blocal\\s+\\w+=|\\b[A-Z_][A-Z_][A-Z_]+=\\$?",
+                                        "ShSyntax":  "\\bfi\\b|\\bdone\\b|\\besac\\b|;\\s*then\\b|\\belif\\b|&&|\\|\\||2>&1|>&2|>\\s*/dev/null|;;|\\bset\\s+-[euxo]|\\bdo\\s*\\r?\\n|\\bEOF\\b|\\|\\s*\\w+",
+                                        "ShCmds":  "\\b(?:echo|grep|awk|sed|curl|chmod|mkdir|rsync|gzip|xargs|systemctl|exit|rm|cat|sort|uniq|wc|pip3?|mktemp|docker|ssh|kubectl)\\s+[-\\w\"'$/<]|\\s-[a-z]\\s+\\d+:\\d+"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "bash"
+                 },
+                 {
+                     "key":  "structural",
+                     "name":  "Source Code - Structural",
+                     "id":  "9976b5bb-9373-4b0a-990c-cf81e33475e4",
+                     "maturity":  "experimental",
+                     "description":  "Language-agnostic: statement endings, brace blocks, function headers, dotted calls, :: calls, plus operator, keyword, identifier and symbol evidence. Safety net; review false positives before use.",
+                     "proximity":  300,
+                     "recommendedConfidence":  85,
+                     "primary":  "[\\w)\\]\"'`]\\s*;[ \\t]*(?:\\r?\\n|$)|\\)\\s*\\{|\\}\\s*(?:else|catch|finally)\\b|\\b\\w+\\s*\\([\\w\\s,\"'$@.:*&\\[\\]<>]*\\)\\s*(?:->\\s*\\w+\\s*)?\\{|\\b\\w+\\.\\w+\\([\\w\\s,\"'$@.:*&\\[\\]()=>+-]*\\)|\\]::\\w+\\(|\\b\\w+::\\w+|\\)\\s*=>|\\b\\w+\\s*=>\\s*\\{|\\b(?:SELECT|select)\\s+(?:\\*|DISTINCT\\b|distinct\\b|TOP\\s+\\d+|top\\s+\\d+|[\\w.]+\\s*,|\\w+\\.\\w+|\\w+\\(|[\\w.]+\\s+(?:AS|as)\\s+\\w+)[\\w\\*,\\s.()'<>=+-]*\\s+(?:FROM|from)\\s+[\\w.#\\[\\]]+|\\b(?:GRANT|REVOKE)\\s+(?:SELECT|INSERT|UPDATE|DELETE|EXECUTE|ALL)(?:\\s*,\\s*\\w+)?\\s+ON\\s+[\\w.\\[\\]]+|\\$\\{\\w+|\\[\\[?\\s+-[a-z]\\s",
+                     "supporting":  {
+                                        "GenOps":  "==|!=|&&|\\|\\||\\+=|-=|\\+\\+|<=|>=|<<|::|:=|\\?\\?|\\?\\.",
+                                        "GenKeywords":  "\\b(?:if|for|while|switch|catch|foreach|lock|using|until|elif)\\s*[\\(\\[]|\\breturn\\b|\\bnull\\b|\\bnil\\b|\\bNone\\b|\\btrue\\b|\\bfalse\\b|\\bnew\\s+\\w+|\\bthrow\\b|\\bawait\\b|\\b(?:continue|break)\\s*;|\\belse\\b|\\bstatic\\b|\\bconst\\b|\\bvoid\\b|\\bdef\\b|\\bfunc\\b|\\bfunction\\b|\\bfi\\b|\\bdone\\b|\\bthen\\b|\\bexit\\s+\\d",
+                                        "GenIdents":  "\\b[a-z]+[A-Z]\\w*\\b|\\b[a-z]+_[a-z_]+\\b|\\b_\\w+|\\b[A-Z][a-z]+[A-Z]\\w*\\b",
+                                        "GenSymbols":  "\\[[\\w\"'$@.]*\\]|\\{\\s*\\}|\\(\\s*\\)|\\$\\w+|@\\w+|\\w+\\[\\w+\\]|\"[\\w\\s/:.%{}$-]*\"|'[\\w\\s/:.%{}$-]*'|\\b\\d+(?:\\.\\d+)?[fmLu]?\\s*[;,)]"
+                                    },
+                     "patterns":  [
+                                      {
+                                          "confidence":  85,
+                                          "minSupporting":  2
+                                      },
+                                      {
+                                          "confidence":  75,
+                                          "minSupporting":  1
+                                      }
+                                  ],
+                     "testSamples":  "*"
+                 }
+             ]
+}

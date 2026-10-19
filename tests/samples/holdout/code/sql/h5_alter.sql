@@ -1,0 +1,1 @@
+ALTER TABLE dbo.Trades ADD Venue NVARCHAR(20) NULL;

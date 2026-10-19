@@ -1,0 +1,1 @@
+delete from sessions where last_seen < now() - interval '30 days';

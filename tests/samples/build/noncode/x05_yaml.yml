@@ -1,0 +1,6 @@
+service:
+  name: pricing
+  replicas: 3
+  env:
+    - name: MODE
+      value: production

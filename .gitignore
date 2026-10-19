@@ -1,0 +1,3 @@
+# Tenant exports can contain tenant-specific IDs; keep them out of the repo
+exports/
+*.bak

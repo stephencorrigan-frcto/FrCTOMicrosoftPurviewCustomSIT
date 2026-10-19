@@ -1,0 +1,2 @@
+This is a plain, non-code attachment for testing the "audit all external attachments" policy.
+It should be logged by that policy only, and should NOT trigger any code rule.

@@ -1,0 +1,1 @@
+GRANT SELECT ON dbo.Trades TO ReportingRole;

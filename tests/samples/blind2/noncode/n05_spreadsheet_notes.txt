@@ -1,0 +1,1 @@
+Sheet "Pnl": column D = B - C. Use COUNTIF(A:A,"Open") for open trades and MAX(E:E) for the largest exposure.

@@ -1,0 +1,1 @@
+document.getElementById("refresh").addEventListener("click", () => { const el = document.querySelector("#out"); el.textContent = JSON.stringify(window.lastPrices); });

@@ -1,0 +1,1 @@
+The reports are under \\contoso.local\Reports\2026 and /shared/finance/q3. Please do not move them.

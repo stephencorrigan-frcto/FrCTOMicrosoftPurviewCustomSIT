@@ -1,0 +1,1 @@
+type Quote = Readonly<{ symbol: string; bid: number; ask: number }>;

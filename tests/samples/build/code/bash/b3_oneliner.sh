@@ -1,0 +1,1 @@
+find . -name "*.tmp" -mtime +7 -print0 | xargs -0 rm -f

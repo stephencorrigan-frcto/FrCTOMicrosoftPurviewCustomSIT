@@ -1,0 +1,1 @@
+git log --since="2 weeks ago" --pretty=format:"%an" | sort | uniq -c | sort -rn | head -5

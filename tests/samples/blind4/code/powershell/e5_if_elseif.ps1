@@ -1,0 +1,1 @@
+if ($pct -ge 90) { 'High' } elseif ($pct -ge 50) { 'Medium' } else { 'Low' }

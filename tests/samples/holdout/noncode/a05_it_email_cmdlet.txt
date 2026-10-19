@@ -1,0 +1,1 @@
+Hi, the script owner said to look at the Get-Mailbox report and confirm the numbers by Friday. No action needed from you.

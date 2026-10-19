@@ -1,0 +1,1 @@
+$r = Invoke-WebRequest -Uri https://example.com -UseBasicParsing; if ($r.StatusCode -ne 200) { throw "bad status" }

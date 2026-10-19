@@ -1,0 +1,1 @@
+Get-Service | Where-Object { $_.Status -eq 'Stopped' } | Select-Object Name, StartType | Export-Csv stopped.csv -NoTypeInformation

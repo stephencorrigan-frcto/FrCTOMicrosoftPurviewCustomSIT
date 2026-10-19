@@ -1,0 +1,1 @@
+"{0} has {1} open trades" -f $desk, $count | Out-File -Append .\summary.txt

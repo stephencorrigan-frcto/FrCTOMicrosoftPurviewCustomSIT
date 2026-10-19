@@ -1,0 +1,1 @@
+UPDATE dbo.Accounts SET Status = 'Closed' WHERE ClosedDate IS NOT NULL;

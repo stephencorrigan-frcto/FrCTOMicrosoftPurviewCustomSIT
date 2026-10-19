@@ -1,0 +1,2 @@
+Release notes 4.2: Fixed an issue where SELECT queries from the report screen timed out.
+Improved how the export handles UPDATE requests from the mobile app.

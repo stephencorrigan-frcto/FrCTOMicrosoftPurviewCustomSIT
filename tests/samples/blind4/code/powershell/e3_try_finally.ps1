@@ -1,0 +1,1 @@
+try { $conn.Open(); $count = $cmd.ExecuteScalar() } finally { $conn.Close() }

@@ -1,0 +1,1 @@
+Check: if assets == liabilities + equity, the balance sheet balances. Ratio >= 1.2 is required.

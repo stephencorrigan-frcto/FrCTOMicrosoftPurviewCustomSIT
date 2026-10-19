@@ -1,0 +1,1 @@
+User reports: "when I click Save the function hangs". Steps: open file, select range, press Insert. Expected: row added. Actual: nothing.

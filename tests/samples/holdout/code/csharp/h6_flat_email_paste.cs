@@ -1,0 +1,1 @@
+foreach (var row in rows) { if (row.Status == "Open") { openCount++; } } Console.WriteLine(openCount);
