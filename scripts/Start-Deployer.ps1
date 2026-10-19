@@ -971,7 +971,7 @@ function Show-Verification($v) {
     if ($v.Run) {
         $ui.RunText.Text = "Run $($v.Run.RunId): $($v.Run.Count) email(s) sent $($v.Run.Sent.ToString('dd MMM HH:mm')) from $($v.Run.Sender) to $($v.Run.Recipients)."
         foreach ($e in @($v.Emails)) {
-            $obs = if ($e.Observed) { "matched: $($e.Rules)" } else { 'no match recorded yet' }
+            $obs = if ($e.Observed) { "matched: $($e.Rules)" + $(if ($e.Sits) { " ($($e.Sits))" } else { '' }) } else { 'no match recorded yet' }
             [void]$ui.EmailList.Children.Add((New-StatusRow $e.Status "$($e.File) ($($e.Format))" "$($e.ExpectedText); $obs"))
         }
     } else { $ui.RunText.Text = 'No test run selected. Send test emails from the Test email tab to verify detection.' }
@@ -992,7 +992,7 @@ function Start-Check([bool]$quiet) {
     }
     $s = Get-Settings
     $exes = @($s.Apps -split "`r?`n" | ForEach-Object { ($_ -split '=', 2)[-1].Trim() } | Where-Object { $_ })
-    $a = @{ SkipConnect = $true; Prefix = $s.Prefix; IncludeExperimental = $s.IncludeExperimental; IncludeAttachmentAudit = $s.AttachmentAudit
+    $a = @{ SkipConnect = $true; Prefix = $s.Prefix; IncludeAttachmentAudit = $s.AttachmentAudit   # experimental pack: detected in the tenant
             SkipAppGroup = -not $s.AppGroup; AppGroupName = $s.AppGroupName; AppExecutables = $exes }
     $csv = if ($ui.RunPicker.SelectedItem) { [string]$ui.RunPicker.SelectedItem.Tag } else { '' }
     if ($csv) { $a.SentCsv = $csv } else { $a.SentCsv = Join-Path $root 'exports\none\sent.csv' }   # a path that does not exist = configuration only

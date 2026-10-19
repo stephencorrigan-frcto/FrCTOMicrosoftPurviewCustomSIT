@@ -41,8 +41,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $defs = Get-Content $Definitions -Raw | ConvertFrom-Json
-$maturities = @('stable') + $(if ($IncludeExperimental) { 'experimental' } else { @() })
-$wanted = @($defs.sits | Where-Object { $maturities -contains $_.maturity } | ForEach-Object { $_.name })
+$sitNameById = @{}; foreach ($x in $defs.sits) { $sitNameById[[string]$x.id] = $x.name }
 if (-not $SentCsv) {
     $latest = Get-ChildItem (Join-Path $PSScriptRoot '..\exports') -Filter sent.csv -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($latest) { $SentCsv = $latest.FullName }
@@ -66,6 +65,13 @@ if (-not $SkipConnect) {
     Connect-IPPSSession @conn
 }
 try {
+    $emailRuleText = ''
+    # experimental pack: checked when asked for, or when the tenant already has it
+    $expPack = $null; try { $expPack = Get-DlpSensitiveInformationTypeRulePackage -Identity $defs.packs.experimental.id -ErrorAction Stop } catch { }
+    if ($expPack -and -not $IncludeExperimental) { $IncludeExperimental = [switch]$true }
+    $maturities = @('stable') + $(if ($IncludeExperimental) { 'experimental' } else { @() })
+    $wanted = @($defs.sits | Where-Object { $maturities -contains $_.maturity } | ForEach-Object { $_.name })
+
     # ---------- configuration ----------
     foreach ($m in $maturities) {
         $pack = $defs.packs.$m
@@ -103,6 +109,7 @@ try {
             if ($r.Disabled) { Add-Check 'Rules' $rn 'Fail' 'rule is disabled'; continue }
             if ($p.NoSits) { Add-Check 'Rules' $rn 'Pass' 'enabled'; continue }
             $text = [string]$r.AdvancedRule + ' ' + (($r.ContentContainsSensitiveInformation | ConvertTo-Json -Depth 8 -Compress) -as [string])
+            if ($rn -eq 'Code Sent to External Recipients') { $emailRuleText = $text }
             $absent = @($wanted | Where-Object { $text -notmatch [regex]::Escape($_) })
             $alert = if ($r.GenerateAlert) { "; alerts to $(@($r.GenerateAlert) -join ', ')" } else { '' }
             Add-Check 'Rules' $rn $(if ($absent) { 'Fail' } else { 'Pass' }) $(if ($absent) { "condition is missing: $($absent -join ', ')" } else { "enabled, all $($wanted.Count) code SITs$alert" })
@@ -128,12 +135,13 @@ try {
     if ($SentCsv -and (Test-Path $SentCsv)) { $sent = @(Import-Csv $SentCsv | Where-Object { $_.Status -eq 'Sent' }) }
     $firstSent = if ($sent) { ($sent | ForEach-Object { [datetime]$_.Time } | Sort-Object | Select-Object -First 1) } else { $null }
     $since = if ($firstSent) { $firstSent.AddMinutes(-10) } else { (Get-Date).AddHours(-24) }
+    if ($since -lt (Get-Date).AddDays(-29)) { $since = (Get-Date).AddDays(-29) }   # Activity explorer keeps 30 days
 
     $records = @()
     try {
         $cookie = $null; $pages = 0
         do {
-            $q = @{ StartTime = $since; EndTime = (Get-Date).AddMinutes(5); OutputFormat = 'Json'; PageSize = 5000; Filter1 = @('Activity', 'DLPRuleMatch'); ErrorAction = 'Stop' }
+            $q = @{ StartTime = $since; EndTime = (Get-Date); OutputFormat = 'Json'; PageSize = 5000; Filter1 = @('Activity', 'DLPRuleMatch'); ErrorAction = 'Stop' }
             if ($cookie) { $q.PageCookie = $cookie }
             $res = Export-ActivityExplorerData @q
             $data = $res.ResultData
@@ -141,20 +149,54 @@ try {
             $cookie = $res.WaterMark; $pages++
         } while (-not $res.LastPage -and $cookie -and $pages -lt 10)
         Add-Check 'Detection' 'Activity explorer' 'Info' "$($records.Count) DLP rule match(es) since $($since.ToString('yyyy-MM-dd HH:mm'))"
-    } catch { Add-Check 'Detection' 'Activity explorer' 'Fail' "could not read Activity explorer: $($_.Exception.Message.Split("`n")[0]) (needs an Activity explorer role, for example Compliance Administrator)" }
+    } catch {
+        $m = $_.Exception.Message.Split("`n")[0].Trim('|')
+        if ($m -match 'denied|permission|authori|forbidden') { $m += ' (needs an Activity explorer role, for example Compliance Administrator)' }
+        Add-Check 'Detection' 'Activity explorer' 'Fail' "could not read Activity explorer: $m"
+    }
 
     $recText = @($records | ForEach-Object { $_ | ConvertTo-Json -Depth 10 -Compress })
     foreach ($rn in $allRuleNames) { $ruleCounts[$rn] = @($recText | Where-Object { $_ -match [regex]::Escape($rn) }).Count }
+
+    $planFile = Join-Path $PSScriptRoot '..\tests\manual\TEST-PLAN.md'
+    $plan = @{}
+    if (Test-Path $planFile) {
+        $lines = @(Get-Content $planFile | Where-Object { $_ -like '|*' })
+        if ($lines.Count -ge 3) {
+            $hdr = @($lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+            foreach ($l in $lines | Select-Object -Skip 2) {
+                $c = @($l.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+                $row = @{}; for ($k = 1; $k -lt $c.Count -and $k -lt $hdr.Count; $k++) { if ($c[$k] -match '^\d+$') { $row[$hdr[$k]] = [int]$c[$k] } }
+                $plan[$c[0]] = $row
+            }
+        }
+    }
+    $ruleSits = @($defs.sits | Where-Object { $emailRuleText -and $emailRuleText -match [regex]::Escape($_.name) } | ForEach-Object { $_.name })
+    $ruleLevel = 85
+    if ($emailRuleText -match '"confidencelevel"\s*:\s*"(High|Medium|Low)"') { $ruleLevel = @{ High = 85; Medium = 75; Low = 65 }[$Matches[1]] }
+    elseif ($emailRuleText -match '"minconfidence"\s*:\s*"?(\d+)') { $ruleLevel = [int]$Matches[1] }
+    function Get-ExpectedMatch([string]$file) {
+        if (-not $ruleSits -or -not $plan.ContainsKey($file)) { return @{ Match = $null; Text = '' } }
+        $hits = @($ruleSits | Where-Object { $plan[$file][$_] -ge $ruleLevel } | ForEach-Object { ($_ -replace '^Source Code - ', '') -replace ' Source Code$', '' })
+        if ($hits) { @{ Match = $true; Text = 'expect match: ' + ($hits -join ', ') } } else { @{ Match = $false; Text = 'expect no match' } }
+    }
+    if ($ruleSits) { Add-Check 'Detection' 'Expected results' 'Info' "from the deployed rule: $($ruleSits.Count) SITs at confidence $ruleLevel or above, and tests\manual\TEST-PLAN.md" }
 
     if ($sent) {
         $runInfo = [pscustomobject]@{ RunId = $sent[0].RunId; Sent = $firstSent; Count = $sent.Count; Csv = $SentCsv; Sender = $sent[0].Sender; Recipients = $sent[0].Recipients }
         $age = ((Get-Date) - $firstSent).TotalHours
         foreach ($row in $sent) {
-            $hitIdx = @(for ($k = 0; $k -lt $recText.Count; $k++) { if ($recText[$k].Contains($row.Subject)) { $k } })
-            $rulesHit = @($allRuleNames | Where-Object { $rn = $_; @($hitIdx | Where-Object { $recText[$_] -match [regex]::Escape($rn) }).Count })
-            $exp = if ($row.Expected -like 'expect match*') { $true } elseif ($row.Expected -like 'expect no match*') { $false } else { $null }
-            $emails += [pscustomobject]@{ File = $row.File; Format = $row.Format; Subject = $row.Subject; Expected = $exp; ExpectedText = $row.Expected
-                                          Observed = ($hitIdx.Count -gt 0); Rules = ($rulesHit -join ', '); Status = '' }
+            $hitIdx = @(for ($k = 0; $k -lt $records.Count; $k++) {
+                $rec = $records[$k]
+                if ([string]$rec.EmailInfo.Subject -eq $row.Subject -or [string]$rec.ItemName -eq $row.Subject -or $recText[$k].Contains($row.Subject)) { $k }
+            })
+            $rulesHit = @($hitIdx | ForEach-Object { $rr = [string]$records[$_].PolicyMatchInfo.RuleName; if ($rr) { $rr } else { $t = $recText[$_]; $allRuleNames | Where-Object { $t -match [regex]::Escape($_) } } } | Select-Object -Unique)
+            $sitsHit = @($hitIdx | ForEach-Object { @($records[$_].SensitiveInfoTypeData) } | Where-Object { $_ } | ForEach-Object {
+                $n = $sitNameById[[string]$_.SensitiveInfoTypeId]; if ($n) { (($n -replace '^Source Code - ', '') -replace ' Source Code$', '') + " $($_.Confidence)" } } | Select-Object -Unique)
+            $exp = Get-ExpectedMatch $row.File
+            $expText = if ($null -eq $exp.Match) { $row.Expected } else { $exp.Text }
+            $emails += [pscustomobject]@{ File = $row.File; Format = $row.Format; Subject = $row.Subject; Expected = $exp.Match; ExpectedText = $expText
+                                          Observed = ($hitIdx.Count -gt 0); Rules = ($rulesHit -join ', '); Sits = ($sitsHit -join ', '); Status = '' }
         }
         $positivesArrived = -not @($emails | Where-Object { $_.Expected -eq $true -and -not $_.Observed })
         foreach ($e in $emails) {
@@ -191,7 +233,7 @@ try {
     if ($runInfo) {
         "`n== Test run $($runInfo.RunId): $($runInfo.Count) email(s) sent $($runInfo.Sent.ToString('yyyy-MM-dd HH:mm')) from $($runInfo.Sender)"
         foreach ($e in $emails) {
-            $obs = if ($e.Observed) { "matched ($($e.Rules))" } else { 'no match recorded' }
+            $obs = if ($e.Observed) { "matched ($($e.Rules))" + $(if ($e.Sits) { " by $($e.Sits)" } else { '' }) } else { 'no match recorded' }
             "  [{0}] {1} ({2}): {3}; {4}" -f $mark[$e.Status], $e.File, $e.Format, $e.ExpectedText, $obs
         }
     } else { "`n== No test run found. Send test emails from the Test email tab (or Send-DlpTestEmails.ps1)." }
