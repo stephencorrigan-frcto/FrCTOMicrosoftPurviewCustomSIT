@@ -7,7 +7,7 @@
 - Windows with Windows PowerShell 5.1 (built in) or PowerShell 7.
 - The `ExchangeOnlineManagement` module. If it is missing, the app shows an **Install module** button (installs for the current user from the PowerShell Gallery).
 - An admin account in the customer's tenant with **Compliance Administrator** (or a role group that manages DLP policies and sensitive info types).
-- If you downloaded the repo as a ZIP, right-click the ZIP, *Properties*, tick **Unblock**, then extract. Otherwise Windows may warn when you run `Deploy.cmd`.
+- Get the release ZIP (`CodeDlpDeployer-<version>.zip`) and extract it anywhere. The app clears Windows' downloaded-file mark from its own folder when it starts. Windows SmartScreen may still warn about `Deploy.cmd` the first time: *More info*, *Run anyway*.
 
 ## Steps
 
@@ -41,6 +41,15 @@ Both folders are git-ignored because they contain customer details.
 ## Several customers
 
 Sign in, deploy, then **Switch tenant** to sign in to the next customer. Keep one saved settings file per customer (for example `profiles\contoso.com.json`) and **Load settings** before previewing.
+
+## Building a release
+
+```powershell
+.\scripts\Build-Release.ps1 -Version 1.0.0                                    # unsigned
+.\scripts\Build-Release.ps1 -Version 1.0.0 -CertificateThumbprint <thumbprint>  # scripts Authenticode-signed
+```
+
+Writes `dist\CodeDlpDeployer-<version>.zip` and a `.sha256` next to it. The zip holds only what is needed to deploy (app, deployment scripts, built rule packages, definitions, assets, docs, manual test files) plus `VERSION.txt` and `SHA256SUMS.txt`; the sample corpora, offline harness and `Build-RulePack.ps1` stay in the repo. Signing uses a code-signing certificate in your certificate store and a timestamp, so signatures outlive the certificate. Rebuild the rule packages first if the definitions changed. `dist\` is git-ignored.
 
 ## Without the app
 

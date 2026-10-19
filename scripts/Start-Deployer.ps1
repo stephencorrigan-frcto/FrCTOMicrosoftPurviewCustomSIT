@@ -26,6 +26,8 @@ if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+# Files extracted from a downloaded ZIP carry the internet-zone mark; clear it so nothing in the folder is blocked
+Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -625,7 +627,8 @@ $ui.SaveLogBtn.Add_Click({
 })
 
 $win.Add_Loaded({
-    Write-Log 'Netrio Code DLP Deployer'
+    $verFile = Join-Path $root 'VERSION.txt'
+    Write-Log $(if (Test-Path $verFile) { (Get-Content $verFile -TotalCount 1) } else { 'Netrio Code DLP Deployer (development copy)' })
     Write-Log "Repository: $root"
     if (Test-Module) { Write-Log "ExchangeOnlineManagement $((Get-Module -ListAvailable ExchangeOnlineManagement | Sort-Object Version -Descending | Select-Object -First 1).Version) found." }
     else { Write-Log 'ExchangeOnlineManagement is not installed. Use Install module.' }

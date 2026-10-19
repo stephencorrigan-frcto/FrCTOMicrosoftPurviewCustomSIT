@@ -4,3 +4,6 @@ exports/
 
 # Per-customer deployer settings (customer names, alert addresses)
 profiles/
+
+# Release builds (scripts/Build-Release.ps1)
+dist/
