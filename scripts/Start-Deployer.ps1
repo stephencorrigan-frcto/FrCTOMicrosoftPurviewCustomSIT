@@ -244,7 +244,8 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
                 <TextBlock Text="DLP policies" Style="{StaticResource CardTitle}"/>
               </StackPanel>
               <TextBlock Text="Alert recipients" Style="{StaticResource Label}"/>
-              <TextBox x:Name="AlertRecipients" ToolTip="Email addresses that receive DLP alerts, separated by commas or semicolons."/>
+              <TextBox x:Name="AlertRecipients" ToolTip="Mailboxes, mail users or contacts in the customer's tenant, separated by commas or semicolons. SiteAdmin sends alerts to the tenant's admins."/>
+              <TextBlock Style="{StaticResource Hint}" Margin="0,-6,0,8" Text="Must exist in the customer's tenant (mailbox, mail user or contact), or SiteAdmin. For an outside address, add it as a mail contact first."/>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <StackPanel>
@@ -430,7 +431,7 @@ function Get-RunArgs {
     $s = Get-Settings; $problems = @()
     $recips = @($s.AlertRecipients -split '[,;\s]+' | Where-Object { $_ })
     if (-not $recips) { $problems += 'Enter at least one alert recipient.' }
-    foreach ($r in $recips) { if ($r -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $problems += "Not an email address: $r" } }
+    foreach ($r in $recips) { if ($r -ne 'SiteAdmin' -and $r -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $problems += "Not an email address: $r" } }
     if (-not $s.Prefix) { $problems += 'Enter a policy name prefix.' }
     elseif ($s.Prefix.Length -gt 40) { $problems += 'Keep the policy name prefix to 40 characters or fewer.' }
     $apps = @()
