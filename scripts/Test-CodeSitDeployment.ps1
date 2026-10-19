@@ -96,10 +96,15 @@ try {
         if (-not $pol.Enabled -or $mode -eq 'Disable') { Add-Check 'Policies' $p.Name 'Fail' "policy is off (mode $mode)" }
         else {
             $dist = [string]$pol.DistributionStatus
+            $results = (@($pol.DistributionResults) | ForEach-Object { [string]$_ }) -join '; '
             $status = switch ($dist) { 'Success' { 'Pass' } 'Pending' { 'Wait' } default { 'Fail' } }
             $detail = "mode: $modeText, distribution: $dist"
-            if ($status -eq 'Fail' -and $pol.DistributionResults) { $detail += ' (' + ((@($pol.DistributionResults) | ForEach-Object { [string]$_ }) -join '; ') + ')' }
-            if ($status -eq 'Wait') { $detail += ' (usually up to an hour after a change)' }
+            if ($status -eq 'Fail' -and $results -match 'PolicySyncTimeout|taking longer than expected') {
+                # Microsoft's own wording: a sync delay, not a failure
+                $status = 'Wait'; $detail += ' (Microsoft reports a sync delay, PolicySyncTimeout: its status can take a few more hours to update)'
+            }
+            elseif ($status -eq 'Fail') { $detail += $(if ($results) { " ($results)" } else { '' }) + ". Retry with: Set-DlpCompliancePolicy -Identity '$($p.Name)' -RetryDistribution" }
+            elseif ($status -eq 'Wait') { $detail += ' (usually up to an hour after a change)' }
             Add-Check 'Policies' $p.Name $status $detail
         }
         $rules = @(Get-DlpComplianceRule -Policy $p.Name -ErrorAction SilentlyContinue)
@@ -157,6 +162,11 @@ try {
 
     $recText = @($records | ForEach-Object { $_ | ConvertTo-Json -Depth 10 -Compress })
     foreach ($rn in $allRuleNames) { $ruleCounts[$rn] = @($recText | Where-Object { $_ -match [regex]::Escape($rn) }).Count }
+    foreach ($p in $policies) {
+        $c = $checks | Where-Object { $_.Area -eq 'Policies' -and $_.Name -eq $p.Name -and $_.Status -eq 'Wait' } | Select-Object -First 1
+        $n = ($p.Rules | ForEach-Object { $ruleCounts[$_] } | Measure-Object -Sum).Sum
+        if ($c -and $n -gt 0) { $c.Status = 'Pass'; $c.Detail += "; enforcing: $n rule match(es) already recorded in Activity explorer" }
+    }
 
     $planFile = Join-Path $PSScriptRoot '..\tests\manual\TEST-PLAN.md'
     $plan = @{}
