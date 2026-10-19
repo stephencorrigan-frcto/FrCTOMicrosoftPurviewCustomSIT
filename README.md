@@ -4,6 +4,8 @@ Custom sensitive information types (SITs) that detect source code, with scripts 
 
 This is the **code-sits** branch of the custom SIT library. Other SIT families live on their own branches (see `main`).
 
+**Deploying for the first time? Follow the [full setup guide](docs/SETUP.md)**: prerequisites, device onboarding, browsers, Endpoint DLP settings, SITs, policies, portal steps, field testing and go-live.
+
 ## What's here
 
 | Folder | Contents |
@@ -14,10 +16,11 @@ This is the **code-sits** branch of the custom SIT library. Other SIT families l
 | `scripts/Import-CustomSITs.ps1` | Adds or updates a rule package in a tenant (preview, then type YES). |
 | `scripts/Export-CustomSITs.ps1` | Read-only export of a tenant's custom rule packages. |
 | `scripts/New-CodeDlpPolicies.ps1` | Creates email and endpoint DLP policies that use the SITs (preview by default, simulation mode). |
+| `scripts/New-EndpointDlpAppGroup.ps1` | Creates or extends an Endpoint DLP restricted app group (default *AI desktop apps* with `claude.exe`), keeping all existing groups, with a backup and restore script. |
 | `tests/Test-CodeSITs.ps1` | Offline harness: scores the rule packages against the sample corpora in case-sensitive and case-insensitive mode. |
 | `tests/samples/` | 268 code samples (10 languages) and 84 non-code samples, in six sets. All synthetic. |
 | `tests/manual/` | Files for hands-on testing (paste into an AI site, attach to email, copy to USB) and `TEST-PLAN.md` with expected results. |
-| `docs/` | [Design](docs/DESIGN.md), [testing and results](docs/TESTING.md), [policies](docs/POLICIES.md). |
+| `docs/` | [Full setup guide](docs/SETUP.md), [design](docs/DESIGN.md), [testing and results](docs/TESTING.md), [policies](docs/POLICIES.md). |
 
 ## The SITs
 

@@ -1,5 +1,7 @@
 # Using the SITs in DLP policies
 
+For the complete deployment order, see the [full setup guide](SETUP.md).
+
 ## What `New-CodeDlpPolicies.ps1` creates
 
 | Policy | Rule | Conditions | Actions |
@@ -17,7 +19,7 @@ Defaults: simulation mode (`TestWithoutNotifications`), no user notifications, n
 
 **Log code opened by AI desktop apps.** Browser rules do not see native apps. To log when a desktop AI app opens a file containing code:
 
-1. Endpoint DLP settings, *Restricted apps and app groups*: create a group (for example *AI desktop apps*) with the app executables. Add them to the group only, not to the global restricted apps list.
+1. Create a restricted app group (for example *AI desktop apps*) with the app executables. Use `scripts/New-EndpointDlpAppGroup.ps1`, which keeps existing groups and writes a backup, or the portal (Endpoint DLP settings, *Restricted apps and app groups*). Add apps to the group only, not to the global restricted apps list.
 2. Add a separate rule (alerts off) to the endpoint policy: code SIT match, action *File activities for apps in restricted app groups* = Audit.
 
 This captures file access by the app. Text typed or pasted directly into a desktop app is not inspected; the earlier copy to the clipboard is logged (CopyPaste), but not where it was pasted.
