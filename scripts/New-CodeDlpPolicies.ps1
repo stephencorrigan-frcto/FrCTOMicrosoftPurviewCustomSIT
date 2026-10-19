@@ -58,25 +58,25 @@ param(
 $ErrorActionPreference = 'Stop'
 $defs = Get-Content $Definitions -Raw | ConvertFrom-Json
 $wanted = @($defs.sits | Where-Object { $_.maturity -eq 'stable' -or ($IncludeExperimental -and $_.maturity -eq 'experimental') } | ForEach-Object { $_.name })
-$minConf = if ($Confidence -eq 'High') { '85' } else { '75' }
+$minConf = $Confidence   # Purview confidence level: High (85) or Medium (75)
 
 # Content condition. Microsoft's trainable classifier is only accepted inside the "groups" form of the condition.
-function Get-SitCondition([string]$min, [bool]$classifier) {
-    $types = @(foreach ($n in $wanted) { @{ name = $n; mincount = '1'; minconfidence = $min; maxconfidence = '100' } })
+function Get-SitCondition([string]$level, [bool]$classifier) {
+    $types = @(foreach ($n in $wanted) { @{ name = $n; mincount = '1'; confidencelevel = $level } })
     if (-not $classifier) { return , $types }
     $types += @{ name = 'Source code'; classifiertype = 'MLModel' }   # Microsoft trainable classifier
     return @{ operator = 'And'; groups = @(@{ operator = 'Or'; name = 'Default'; sensitivetypes = $types }) }
 }
 $toolComment = 'Created by New-CodeDlpPolicies.ps1 (custom code SITs).'
 
-# Rules: MinConfidence = the code SIT confidence for the content condition ($null = no content condition)
+# Rules: MinConfidence = the code SIT confidence level for the content condition ($null = no content condition)
 $plan = @(
     [ordered]@{ Policy = "$Prefix - External Email"; Location = 'Exchange'; Rules = @(
         [ordered]@{ Name = 'Code Sent to External Recipients'; MinConfidence = $minConf; Params = @{ AccessScope = 'NotInOrganization'; GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High' } }) }
     [ordered]@{ Policy = "$Prefix - Endpoint"; Location = 'Endpoint'; Rules = @(
         [ordered]@{ Name = 'Code Pasted or Uploaded to Websites'; MinConfidence = $minConf; Params = @{ GenerateAlert = $AlertRecipients; ReportSeverityLevel = 'High'
                     EndpointDlpRestrictions = @(@{ Setting = 'PasteToBrowser'; Value = 'Audit' }, @{ Setting = 'CloudEgress'; Value = 'Audit' }) } }
-        [ordered]@{ Name = 'Code Copied Off Device'; MinConfidence = '85'; Params = @{ ReportSeverityLevel = 'Low'
+        [ordered]@{ Name = 'Code Copied Off Device'; MinConfidence = 'High'; Params = @{ ReportSeverityLevel = 'Low'
                     EndpointDlpRestrictions = @(@{ Setting = 'CopyPaste'; Value = 'Audit' }, @{ Setting = 'NetworkShare'; Value = 'Audit' }, @{ Setting = 'RemovableMedia'; Value = 'Audit' }) } }) }
 )
 if ($IncludeAttachmentAudit) {
